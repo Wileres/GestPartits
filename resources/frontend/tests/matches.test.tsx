@@ -1,0 +1,105 @@
+import { screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { weekendServer } from './fixtures';
+import { adminMe, mockFetch, renderApp } from './helpers';
+
+afterEach(() => vi.unstubAllGlobals());
+
+describe('full ràpid de partits', () => {
+    it('proposa casa o fora a partir de la jornada anterior i crea els partits', async () => {
+        const { calls } = mockFetch(
+            weekendServer(adminMe, (url, init) =>
+                url === '/api/matchdays/7/matches/bulk' && init.method === 'POST' ? { status: 200, body: { data: [{}, {}] } } : { status: 404 },
+            ),
+        );
+
+        renderApp('/partits');
+
+        const condition = await screen.findByLabelText('Condició · Aleví A');
+        // Suggeriment: l'últim partit va ser a fora, ara toca a casa.
+        expect(condition).toHaveValue('home');
+        expect(screen.getByText('Suggeriment: Casa')).toBeInTheDocument();
+
+        const user = userEvent.setup();
+        await user.type(screen.getByLabelText('Rival · Aleví A'), 'CF Olot');
+        await user.selectOptions(screen.getByLabelText('Condició · Primer equip'), 'rest');
+
+        await user.click(screen.getByRole('button', { name: 'Crea els partits (2)' }));
+
+        await waitFor(() => expect(calls.some((c) => c.url === '/api/matchdays/7/matches/bulk')).toBe(true));
+        const body = JSON.parse(String(calls.find((c) => c.url === '/api/matchdays/7/matches/bulk')?.init.body)) as { rows: unknown[] };
+        expect(body.rows).toEqual([
+            { team_id: 1, status: 'pending', home_away: 'home', opponent: 'CF Olot', round_label: null },
+            { team_id: 2, status: 'rest', home_away: null, opponent: null, round_label: null },
+        ]);
+    });
+
+    it('mostra els partits ja introduïts amb el seu estat', async () => {
+        mockFetch(weekendServer(adminMe));
+
+        renderApp('/partits');
+
+        const row = (await screen.findByText('UE Figueres')).closest('tr');
+        expect(row).not.toBeNull();
+        expect(within(row as HTMLElement).getByText('Fora')).toBeInTheDocument();
+        expect(within(row as HTMLElement).getByText('Confirmat')).toBeInTheDocument();
+        expect(within(row as HTMLElement).getByText('Figueres')).toBeInTheDocument();
+    });
+});
+
+describe('panell del partit', () => {
+    it('mostra les dades de la instal·lació per als partits a fora', async () => {
+        mockFetch(weekendServer(adminMe));
+        renderApp('/partits');
+
+        await userEvent.setup().click(await screen.findByRole('button', { name: 'Edita el partit: Cadet A' }));
+
+        expect(await screen.findByLabelText('Instal·lació')).toHaveValue('Vilatenim');
+        expect(screen.getByLabelText('Municipi')).toHaveValue('Figueres');
+        expect(screen.queryByLabelText('Camp')).not.toBeInTheDocument();
+    });
+
+    it('només ofereix hores en quarts entre les 09:00 i les 21:00 i limita el futbol 11 al camp complet', async () => {
+        const { calls } = mockFetch(
+            weekendServer(adminMe, (url, init) =>
+                url === '/api/matchdays/7/matches' && init.method === 'POST' ? { status: 201, body: { data: {} } } : { status: 404 },
+            ),
+        );
+        renderApp('/partits');
+        const user = userEvent.setup();
+
+        await user.click(await screen.findByRole('button', { name: 'Afegeix un partit: Cadet A' }));
+        await user.click(await screen.findByText('Casa'));
+
+        const field = screen.getByLabelText('Camp');
+        expect(within(field).queryByRole('option', { name: 'Camp 1' })).not.toBeInTheDocument();
+        expect(within(field).getByRole('option', { name: 'Camp complet' })).toBeInTheDocument();
+
+        const kickoff = screen.getByLabelText('Hora del partit');
+        const options = within(kickoff).getAllByRole('option').map((o) => o.textContent);
+        expect(options).toContain('09:00');
+        expect(options).toContain('21:00');
+        expect(options).not.toContain('08:45');
+        expect(options).not.toContain('21:15');
+        expect(options).not.toContain('10:10');
+
+        await user.selectOptions(screen.getByLabelText('Data'), '2026-10-17');
+        await user.selectOptions(kickoff, '10:15');
+        await user.selectOptions(field, '3');
+        await user.type(screen.getByLabelText('Hora de convocatòria'), '10:30');
+        await user.click(screen.getByRole('button', { name: 'Desa' }));
+
+        // La convocatòria no pot ser posterior al partit: no s'envia res.
+        expect(await screen.findByText('La convocatòria no pot ser posterior a l’hora del partit.')).toBeInTheDocument();
+        expect(calls.some((c) => c.url === '/api/matchdays/7/matches' && c.init.method === 'POST')).toBe(false);
+
+        await user.clear(screen.getByLabelText('Hora de convocatòria'));
+        await user.type(screen.getByLabelText('Hora de convocatòria'), '09:30');
+        await user.click(screen.getByRole('button', { name: 'Desa' }));
+
+        await waitFor(() => expect(calls.some((c) => c.url === '/api/matchdays/7/matches' && c.init.method === 'POST')).toBe(true));
+        const body = JSON.parse(String(calls.find((c) => c.url === '/api/matchdays/7/matches' && c.init.method === 'POST')?.init.body)) as Record<string, unknown>;
+        expect(body).toMatchObject({ team_id: 3, home_away: 'home', match_date: '2026-10-17', kickoff_time: '10:15', call_time: '09:30', field_area_id: 3 });
+    });
+});

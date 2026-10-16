@@ -1,0 +1,104 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import '@fontsource-variable/inter';
+
+@source '../../src';
+@source '../../../views';
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Identitat visual del Joventut Sant Pere Màrtir: blau principal, blanc secundari, fons clar.
+ * Els colors d'estat es fan servir sempre acompanyats d'icona i text.
+ */
+:root {
+    --radius: 0.75rem;
+
+    --background: #f5f8fc;
+    --foreground: #0f1f38;
+    --card: #ffffff;
+    --card-foreground: #0f1f38;
+    --popover: #ffffff;
+    --popover-foreground: #0f1f38;
+    --primary: #0b4ea2;
+    --primary-foreground: #ffffff;
+    --secondary: #e8f0fb;
+    --secondary-foreground: #0b4ea2;
+    --muted: #eef2f7;
+    --muted-foreground: #52627a;
+    --accent: #e8f0fb;
+    --accent-foreground: #082f66;
+    --destructive: #c81e1e;
+    --destructive-foreground: #ffffff;
+    --border: #d9e2ee;
+    --input: #cfd9e6;
+    --ring: #0b4ea2;
+
+    --sidebar: #082f66;
+    --sidebar-foreground: #ffffff;
+    --sidebar-accent: #0b4ea2;
+    --sidebar-muted: #b9cbe6;
+
+    /* Estats de la programació */
+    --status-critical: #c81e1e;
+    --status-critical-soft: #fde8e8;
+    --status-warning: #b45309;
+    --status-warning-soft: #fef3c7;
+    --status-valid: #15803d;
+    --status-valid-soft: #dcfce7;
+    --status-locked: #1d4ed8;
+    --status-locked-soft: #dbeafe;
+}
+
+@theme inline {
+    --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+
+    --radius-sm: calc(var(--radius) - 4px);
+    --radius-md: calc(var(--radius) - 2px);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) + 4px);
+
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-destructive: var(--destructive);
+    --color-destructive-foreground: var(--destructive-foreground);
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+
+    --color-sidebar: var(--sidebar);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-muted: var(--sidebar-muted);
+
+    --color-status-critical: var(--status-critical);
+    --color-status-critical-soft: var(--status-critical-soft);
+    --color-status-warning: var(--status-warning);
+    --color-status-warning-soft: var(--status-warning-soft);
+    --color-status-valid: var(--status-valid);
+    --color-status-valid-soft: var(--status-valid-soft);
+    --color-status-locked: var(--status-locked);
+    --color-status-locked-soft: var(--status-locked-soft);
+}
+
+@layer base {
+    * {
+        @apply border-border outline-ring/50;
+    }
+
+    body {
+        @apply bg-background text-foreground font-sans;
+    }
+}

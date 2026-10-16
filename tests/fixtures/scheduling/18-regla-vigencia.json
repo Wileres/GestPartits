@@ -1,0 +1,80 @@
+{
+  "description": "Una regla fora de vigència no s'aplica",
+  "for_confirmation": false,
+  "input": {
+    "dates": [
+      "2026-10-17",
+      "2026-10-18"
+    ],
+    "step_min": 15,
+    "operating": {
+      "first": "09:00",
+      "last": "21:00"
+    },
+    "slots": [
+      {
+        "date": "2026-10-17",
+        "opens": "09:00",
+        "last_kickoff": "13:00",
+        "fill_order": 1,
+        "label": "Dissabte matí"
+      },
+      {
+        "date": "2026-10-17",
+        "opens": "17:00",
+        "last_kickoff": "19:00",
+        "fill_order": null,
+        "label": "Dissabte tarda"
+      },
+      {
+        "date": "2026-10-18",
+        "opens": "09:00",
+        "last_kickoff": "13:00",
+        "fill_order": 2,
+        "label": "Diumenge matí"
+      }
+    ],
+    "blocks": [],
+    "rules": [
+      {
+        "id": 2,
+        "team_id": null,
+        "category_id": 10,
+        "format": null,
+        "weekday": null,
+        "preferred": null,
+        "not_before": "10:00",
+        "not_after": null,
+        "area": null,
+        "priority": 90,
+        "mandatory": true,
+        "label": "Escoleta",
+        "valid_from": "2026-11-01"
+      }
+    ],
+    "matches": [
+      {
+        "id": 1,
+        "team_id": 301,
+        "team": "Equip 1",
+        "category_id": 10,
+        "category_order": 0,
+        "team_order": 1,
+        "format": "f7",
+        "home_away": "home",
+        "status": "pending",
+        "date": "2026-10-17",
+        "kickoff": "09:00",
+        "area": "camp_1",
+        "duration": 60,
+        "post": 10,
+        "gap": 0,
+        "call": null,
+        "locked": false,
+        "override": null,
+        "venue": null
+      }
+    ]
+  },
+  "expected": []
+}

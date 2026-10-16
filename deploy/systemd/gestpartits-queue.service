@@ -1,0 +1,20 @@
+# /etc/systemd/system/gestpartits-queue.service
+# systemctl daemon-reload && systemctl enable --now gestpartits-queue
+[Unit]
+Description=GestPartits: cua de treballs (imatges i avisos de WhatsApp)
+After=network.target mariadb.service
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/gestpartits
+ExecStart=/usr/bin/php artisan queue:work --sleep=3 --tries=1 --max-time=3600 --timeout=180
+Restart=always
+RestartSec=5
+# Chromium necessita un directori d'usuari escrivible.
+Environment=HOME=/var/www/gestpartits/storage/app/chromium
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

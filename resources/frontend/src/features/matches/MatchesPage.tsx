@@ -1,0 +1,320 @@
+import { CalendarDays, Lightbulb, Pencil, Plus } from 'lucide-react';
+import { useState } from 'react';
+import { toast } from 'sonner';
+import type { QuickEntryRow } from '@/api/matches';
+import type { HomeAway, HomeAwaySuggestion, Match, Matchday, ReferenceData, Team } from '@/api/types';
+import { HomeAwayBadge, LockedBadge, StatusBadge } from '@/components/MatchBadges';
+import { NativeSelect } from '@/components/NativeSelect';
+import { PageHeader } from '@/components/PageHeader';
+import { EmptyState, ErrorState, LoadingState } from '@/components/QueryState';
+import { MatchdaySelector } from '@/components/MatchdaySelector';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useTeams } from '@/features/teams/useTeams';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
+import { useReferenceData } from '@/hooks/useReferenceData';
+import { useMatchdaySelection } from '@/hooks/useMatchdaySelection';
+import { ca, t } from '@/i18n/ca';
+import { emptyToNull, errorMessage } from '@/lib/errors';
+import { MatchSheet, type MatchSheetTarget } from './MatchSheet';
+import { useCreateMatches, useHomeAwaySuggestions, useMatches } from './useMatches';
+
+export function MatchesPage() {
+    const selection = useMatchdaySelection();
+    const { data: reference } = useReferenceData();
+
+    return (
+        <>
+            <PageHeader title={t('matches.title')} description={t('matches.subtitle')} />
+            <div className="mb-6">
+                <MatchdaySelector selection={selection} />
+            </div>
+            {selection.isPending || reference === undefined ? (
+                <LoadingState />
+            ) : selection.season === null ? (
+                <EmptyState title={t('matches.noSeason')} />
+            ) : selection.matchday === null ? (
+                <EmptyState title={t('matches.noMatchday')} />
+            ) : (
+                <MatchdayMatches key={selection.matchday.id} matchday={selection.matchday} reference={reference} />
+            )}
+        </>
+    );
+}
+
+type Choice = '' | HomeAway | 'rest';
+
+interface Draft {
+    choice: Choice;
+    opponent: string;
+}
+
+function MatchdayMatches({ matchday, reference }: { matchday: Matchday; reference: ReferenceData }) {
+    const teams = useTeams();
+    const matches = useMatches(matchday.id);
+    const suggestions = useHomeAwaySuggestions(matchday.id);
+    const createMatches = useCreateMatches(matchday.id);
+    const [drafts, setDrafts] = useState<Record<number, Draft>>({});
+    const [sheet, setSheet] = useState<MatchSheetTarget | null>(null);
+    const wide = useMediaQuery('(min-width: 768px)');
+
+    if (teams.isPending || matches.isPending) return <LoadingState />;
+    if (teams.isError || matches.isError) return <ErrorState />;
+
+    const matchesByTeam = new Map<number, Match[]>();
+    for (const match of matches.data) {
+        matchesByTeam.set(match.team_id, [...(matchesByTeam.get(match.team_id) ?? []), match]);
+    }
+
+    // Equips actius i, a més, els desactivats que ja tenen partit en aquesta jornada.
+    const rows = teams.data.filter((team) => team.is_active || matchesByTeam.has(team.id));
+
+    const draftFor = (team: Team): Draft => {
+        const suggestion = suggestions.data?.[String(team.id)]?.suggestion ?? null;
+
+        return drafts[team.id] ?? { choice: suggestion ?? '', opponent: '' };
+    };
+
+    const pendingRows: QuickEntryRow[] = rows
+        .filter((team) => !matchesByTeam.has(team.id) && draftFor(team).choice !== '')
+        .map((team) => {
+            const draft = draftFor(team);
+
+            return {
+                team_id: team.id,
+                status: draft.choice === 'rest' ? 'rest' : 'pending',
+                home_away: draft.choice === 'rest' || draft.choice === '' ? null : draft.choice,
+                opponent: emptyToNull(draft.opponent),
+                round_label: null,
+            };
+        });
+
+    const update = (team: Team, patch: Partial<Draft>) => setDrafts((current) => ({ ...current, [team.id]: { ...draftFor(team), ...patch } }));
+
+    const submit = () =>
+        createMatches.mutate(pendingRows, {
+            onSuccess: (created) => {
+                toast.success(created.length === 1 ? t('matches.createdOne') : t('matches.created', { count: created.length }));
+                setDrafts({});
+            },
+            onError: (error) => toast.error(errorMessage(error)),
+        });
+
+    return (
+        <>
+            {!wide && (
+                <ul className="grid gap-3">
+                    {rows.map((team) => (
+                        <TeamCard
+                            key={team.id}
+                            team={team}
+                            matches={matchesByTeam.get(team.id) ?? []}
+                            draft={draftFor(team)}
+                            suggestion={suggestions.data?.[String(team.id)]}
+                            onChange={(patch) => update(team, patch)}
+                            onEdit={(match) => setSheet({ team, match })}
+                        />
+                    ))}
+                </ul>
+            )}
+            {wide && (
+            <Card className="overflow-x-auto py-0">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead className="min-w-36">{t('matches.team')}</TableHead>
+                            <TableHead className="min-w-36">{t('matches.condition')}</TableHead>
+                            <TableHead className="min-w-48">{t('matches.opponent')}</TableHead>
+                            <TableHead className="min-w-44">{t('matches.when')}</TableHead>
+                            <TableHead className="text-right">{t('common.actions')}</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {rows.map((team) => {
+                            const teamMatches = matchesByTeam.get(team.id) ?? [];
+                            const suggestion = suggestions.data?.[String(team.id)];
+
+                            if (teamMatches.length === 0) {
+                                return <DraftRow key={team.id} team={team} draft={draftFor(team)} suggestion={suggestion} onChange={(patch) => update(team, patch)} />;
+                            }
+
+                            return teamMatches.map((match, index) => (
+                                <TableRow key={match.id}>
+                                    <TableCell className="font-medium">
+                                        {index === 0 && <TeamCell team={team} />}
+                                    </TableCell>
+                                    <TableCell>
+                                        <div className="flex flex-wrap gap-1">
+                                            {match.home_away !== null && <HomeAwayBadge value={match.home_away} />}
+                                            <StatusBadge status={match.status} />
+                                            {match.is_locked && <LockedBadge />}
+                                        </div>
+                                    </TableCell>
+                                    <TableCell>{match.status === 'rest' ? t('matches.rest') : (match.opponent ?? t('common.none'))}</TableCell>
+                                    <TableCell className="text-sm">
+                                        <MatchWhen match={match} />
+                                    </TableCell>
+                                    <TableCell className="text-right whitespace-nowrap">
+                                        <Button variant="ghost" size="icon" onClick={() => setSheet({ team, match })} aria-label={`${t('matches.edit')}: ${team.name}`}>
+                                            <Pencil aria-hidden />
+                                        </Button>
+                                        {index === teamMatches.length - 1 && (
+                                            <Button variant="ghost" size="icon" onClick={() => setSheet({ team, match: null })} aria-label={`${t('matches.add')}: ${team.name}`}>
+                                                <Plus aria-hidden />
+                                            </Button>
+                                        )}
+                                    </TableCell>
+                                </TableRow>
+                            ));
+                        })}
+                    </TableBody>
+                </Table>
+            </Card>
+            )}
+
+            <div className="sticky bottom-0 mt-4 flex justify-end bg-gradient-to-t from-background via-background to-transparent py-3">
+                <Button onClick={submit} disabled={pendingRows.length === 0 || createMatches.isPending}>
+                    <CalendarDays aria-hidden />
+                    {t('matches.createSelected', { count: pendingRows.length })}
+                </Button>
+            </div>
+
+            <MatchSheet target={sheet} matchday={matchday} reference={reference} onClose={() => setSheet(null)} />
+        </>
+    );
+}
+
+interface TeamCardProps {
+    team: Team;
+    matches: Match[];
+    draft: Draft;
+    suggestion: HomeAwaySuggestion | undefined;
+    onChange: (patch: Partial<Draft>) => void;
+    onEdit: (match: Match | null) => void;
+}
+
+/** Versió per a mòbil del full ràpid: una targeta per equip. */
+function TeamCard({ team, matches, draft, suggestion, onChange, onEdit }: TeamCardProps) {
+    return (
+        <li>
+            <Card className="gap-3 px-4 py-3">
+                <div className="flex items-start justify-between gap-2">
+                    <TeamCell team={team} />
+                    <Button variant="ghost" size="icon" onClick={() => onEdit(null)} aria-label={`${t('matches.add')}: ${team.name}`}>
+                        <Plus aria-hidden />
+                    </Button>
+                </div>
+                {matches.length === 0 ? (
+                    <DraftControls team={team} draft={draft} suggestion={suggestion} onChange={onChange} />
+                ) : (
+                    matches.map((match) => (
+                        <button
+                            key={match.id}
+                            type="button"
+                            onClick={() => onEdit(match)}
+                            className="flex w-full items-center justify-between gap-2 rounded-lg border bg-background p-2 text-left"
+                            aria-label={`${t('matches.edit')}: ${team.name}`}
+                        >
+                            <span className="grid gap-1">
+                                <span className="flex flex-wrap gap-1">
+                                    {match.home_away !== null && <HomeAwayBadge value={match.home_away} />}
+                                    <StatusBadge status={match.status} />
+                                    {match.is_locked && <LockedBadge />}
+                                </span>
+                                <span className="text-sm">{match.status === 'rest' ? t('matches.rest') : (match.opponent ?? t('common.none'))}</span>
+                            </span>
+                            <span className="text-right text-sm">
+                                <MatchWhen match={match} />
+                            </span>
+                        </button>
+                    ))
+                )}
+            </Card>
+        </li>
+    );
+}
+
+function TeamCell({ team }: { team: Team }) {
+    return (
+        <span className="flex items-center gap-2">
+            <span className="size-3 shrink-0 rounded-full border" style={{ backgroundColor: team.color ?? 'var(--secondary)' }} aria-hidden />
+            <span>
+                {team.name}
+                <span className="block text-xs font-normal text-muted-foreground">{team.category.name}</span>
+            </span>
+            {!team.is_active && <Badge variant="outline">{t('matches.inactiveTeam')}</Badge>}
+        </span>
+    );
+}
+
+function MatchWhen({ match }: { match: Match }) {
+    if (match.status === 'rest') return <span className="text-muted-foreground">{t('common.none')}</span>;
+    if (match.match_date === null || match.weekday === null) return <span className="text-muted-foreground">{t('matches.unscheduled')}</span>;
+
+    return (
+        <span>
+            {ca.matches.weekdayShort[match.weekday - 1]} {match.kickoff_time ?? ''}
+            {match.field_area !== null && match.field_area !== undefined && <span className="block text-xs text-muted-foreground">{match.field_area.name}</span>}
+            {match.home_away === 'away' && match.municipality !== null && <span className="block text-xs text-muted-foreground">{match.municipality}</span>}
+        </span>
+    );
+}
+
+interface DraftRowProps {
+    team: Team;
+    draft: Draft;
+    suggestion: HomeAwaySuggestion | undefined;
+    onChange: (patch: Partial<Draft>) => void;
+}
+
+function DraftRow(props: DraftRowProps) {
+    return (
+        <TableRow className="bg-muted/30">
+            <TableCell className="font-medium">
+                <TeamCell team={props.team} />
+            </TableCell>
+            <DraftControls {...props} cell />
+            <TableCell className="text-sm text-muted-foreground">{t('matches.unscheduled')}</TableCell>
+            <TableCell />
+        </TableRow>
+    );
+}
+
+/** Condició i rival d'un equip que encara no té partit (a la taula, com a dues cel·les). */
+function DraftControls({ team, draft, suggestion, onChange, cell = false }: DraftRowProps & { cell?: boolean }) {
+    const conditionId = `quick-condition-${team.id}`;
+    const opponentId = `quick-opponent-${team.id}`;
+    const suggested = suggestion?.suggestion ?? null;
+    const Wrapper = cell ? TableCell : 'div';
+
+    return (
+        <>
+            <Wrapper>
+                <label htmlFor={conditionId} className={cell ? 'sr-only' : 'mb-1 block text-sm font-medium'}>
+                    {cell ? `${t('matches.condition')} · ${team.name}` : t('matches.condition')}
+                </label>
+                <NativeSelect id={conditionId} value={draft.choice} onChange={(e) => onChange({ choice: e.target.value as Choice })}>
+                    <option value="">{t('matches.notEntered')}</option>
+                    <option value="home">{t('labels.homeAway.home')}</option>
+                    <option value="away">{t('labels.homeAway.away')}</option>
+                    <option value="rest">{t('matches.rest')}</option>
+                </NativeSelect>
+                {suggested !== null && suggestion?.based_on != null && (
+                    <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground" title={t('matches.suggestedHelp', { value: t(`labels.homeAway.${suggestion.based_on.home_away}`).toLowerCase() })}>
+                        <Lightbulb className="size-3" aria-hidden />
+                        {t('matches.suggested', { value: t(`labels.homeAwayShort.${suggested}`) })}
+                    </p>
+                )}
+            </Wrapper>
+            <Wrapper>
+                <label htmlFor={opponentId} className={cell ? 'sr-only' : 'mb-1 block text-sm font-medium'}>
+                    {cell ? `${t('matches.opponent')} · ${team.name}` : t('matches.opponent')}
+                </label>
+                <Input id={opponentId} value={draft.opponent} onChange={(e) => onChange({ opponent: e.target.value })} disabled={draft.choice === 'rest' || draft.choice === ''} />
+            </Wrapper>
+        </>
+    );
+}
