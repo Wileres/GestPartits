@@ -20,7 +20,7 @@ trait ConfirmsSchedule
     protected function matchesFor(Matchday $matchday): array
     {
         $create = fn (string $slug, array $data) => GameMatch::query()->create([
-            'matchday_id' => $matchday->id, 'team_id' => $this->team($slug)->id, 'status' => MatchStatus::Pending,
+            'matchday_id' => $matchday->id, 'team_id' => $this->team($slug)->id, 'status' => MatchStatus::Confirmed,
             'game_format' => $this->team($slug)->effectiveGameFormat(), 'duration_min' => $this->team($slug)->effectiveDurationMin(), 'post_min' => 10,
             ...$data,
         ]);

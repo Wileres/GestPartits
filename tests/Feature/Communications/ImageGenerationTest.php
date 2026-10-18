@@ -107,7 +107,7 @@ class ImageGenerationTest extends TestCase
         foreach (range(0, 11) as $i) {
             GameMatch::query()->create([
                 'matchday_id' => $matchday->id, 'team_id' => $team->id, 'opponent' => "Rival {$i}", 'home_away' => HomeAway::Away,
-                'status' => MatchStatus::Pending, 'game_format' => 'f7', 'duration_min' => 60, 'match_date' => '2026-10-17',
+                'status' => MatchStatus::Confirmed, 'game_format' => 'f7', 'duration_min' => 60, 'match_date' => '2026-10-17',
                 'kickoff_time' => sprintf('%02d:00', 9 + $i), 'venue_name' => 'Camp', 'municipality' => 'Olot',
             ]);
         }

@@ -48,7 +48,7 @@ export function parseCellId(id: string): { date: string; column: Exclude<Area, '
 export const TRAY_ID = 'safata-sense-programar';
 
 export function isHomeActive(match: Match): boolean {
-    return match.home_away === 'home' && ['pending', 'proposed', 'confirmed'].includes(match.status);
+    return match.home_away === 'home' && ['proposed', 'confirmed'].includes(match.status);
 }
 
 /** «11:15–12:15» (inici i final del partit, sense el marge posterior). */

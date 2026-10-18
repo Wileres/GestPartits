@@ -47,7 +47,7 @@ class MatchRequest extends FormRequest
 
     private function isHome(): bool
     {
-        return $this->input('home_away') === HomeAway::Home->value && $this->input('status') !== MatchStatus::Rest->value;
+        return $this->input('home_away') === HomeAway::Home->value;
     }
 
     /**
@@ -68,8 +68,9 @@ class MatchRequest extends FormRequest
         return [
             'lock_version' => $this->isUpdate() ? ['required', 'integer', 'min:0'] : ['prohibited'],
             'team_id' => ['required', 'integer', Rule::exists('teams', 'id')->whereNull('deleted_at')],
-            'status' => ['required', Rule::enum(MatchStatus::class)],
-            'home_away' => ['nullable', 'required_unless:status,'.MatchStatus::Rest->value, Rule::enum(HomeAway::class)],
+            // Sense estat, un partit nou es desa com a confirmat.
+            'status' => ['sometimes', Rule::enum(MatchStatus::class)],
+            'home_away' => ['required', Rule::enum(HomeAway::class)],
             'opponent' => ['nullable', 'string', 'max:128'],
             'round_label' => ['nullable', 'string', 'max:64'],
             'game_format' => ['nullable', Rule::enum(GameFormat::class)],
@@ -169,7 +170,7 @@ class MatchRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'home_away.required_unless' => 'Indica si el partit és a casa o a fora.',
+            'home_away.required' => 'Indica si el partit és a casa o a fora.',
             'match_date.after_or_equal' => 'La data ha de ser dins de la jornada.',
             'match_date.before_or_equal' => 'La data ha de ser dins de la jornada.',
             'match_date.required_with' => 'Cal indicar la data si s\'indica l\'hora.',

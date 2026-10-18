@@ -9,7 +9,7 @@ afterEach(() => vi.unstubAllGlobals());
 const base = { ...existingMatch, home_away: 'home', status: 'proposed', venue_name: null, municipality: null, call_time: null, end_time: null, occupation_end_time: null };
 
 const homeAlevi = { ...base, id: 61, team_id: 1, team: { id: 1, name: 'Aleví A', color: null, is_active: true, category: { id: 1, name: 'Aleví' } }, game_format: 'f7', match_date: '2026-10-17', weekday: 6, kickoff_time: '11:15', duration_min: 60, post_min: 10, field_area_id: 1, field_area: reference.field_areas[0] };
-const homePrimer = { ...base, id: 62, team_id: 2, team: { id: 2, name: 'Primer equip', color: null, is_active: true, category: { id: 2, name: 'Primer equip' } }, game_format: 'f11', match_date: null, weekday: null, kickoff_time: null, duration_min: 105, post_min: 10, field_area_id: null, field_area: null, status: 'pending' };
+const homePrimer = { ...base, id: 62, team_id: 2, team: { id: 2, name: 'Primer equip', color: null, is_active: true, category: { id: 2, name: 'Primer equip' } }, game_format: 'f11', match_date: null, weekday: null, kickoff_time: null, duration_min: 105, post_min: 10, field_area_id: null, field_area: null, status: 'confirmed' };
 
 const input = {
     dates: ['2026-10-17', '2026-10-18'],
@@ -23,7 +23,7 @@ const input = {
     rules: [],
     matches: [
         { id: 61, team_id: 1, team: 'Aleví A', category_id: 1, category_order: 0, team_order: 1, format: 'f7', home_away: 'home', status: 'proposed', date: '2026-10-17', kickoff: '11:15', area: 'camp_1', duration: 60, post: 10, gap: 0, call: null, locked: false, override: null, venue: null },
-        { id: 62, team_id: 2, team: 'Primer equip', category_id: 2, category_order: 0, team_order: 2, format: 'f11', home_away: 'home', status: 'pending', date: null, kickoff: null, area: null, duration: 105, post: 10, gap: 0, call: null, locked: false, override: null, venue: null },
+        { id: 62, team_id: 2, team: 'Primer equip', category_id: 2, category_order: 0, team_order: 2, format: 'f11', home_away: 'home', status: 'confirmed', date: null, kickoff: null, area: null, duration: 105, post: 10, gap: 0, call: null, locked: false, override: null, venue: null },
         { id: 50, team_id: 3, team: 'Cadet A', category_id: 3, category_order: 0, team_order: 3, format: 'f11', home_away: 'away', status: 'confirmed', date: '2026-10-18', kickoff: '10:00', area: null, duration: 105, post: 10, gap: 0, call: '08:45', locked: false, override: null, venue: 'Vilatenim' },
     ],
 };

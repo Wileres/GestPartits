@@ -11,6 +11,11 @@ use Illuminate\Http\Resources\Json\JsonResource;
  */
 class TeamResource extends JsonResource
 {
+    private function decoration(string $key): mixed
+    {
+        return array_key_exists($key, $this->resource->getAttributes()) ? $this->resource->getAttributes()[$key] : null;
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -36,8 +41,9 @@ class TeamResource extends JsonResource
                 'post_min' => $this->effectivePostMin(),
             ]),
             'color' => $this->color,
-            'has_logo' => $this->logo_path !== null,
-            'logo_url' => $this->logo_path === null ? null : url("/api/teams/{$this->id}/logo").'?v='.$this->updated_at?->timestamp,
+            // Horari preferent a casa: el propi (editable) i, si no n'hi ha, l'heretat de la categoria o la modalitat.
+            'preferred_schedule' => $this->decoration('preferred_schedule'),
+            'inherited_preference' => $this->decoration('inherited_preference'),
             'sort_order' => $this->sort_order,
             'is_active' => $this->is_active,
             'scheduling_rules' => SchedulingRuleResource::collection($this->whenLoaded('schedulingRules')),

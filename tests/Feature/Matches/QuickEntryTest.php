@@ -23,9 +23,9 @@ class QuickEntryTest extends TestCase
         $matchday = $this->weekend();
 
         $this->spa()->postJson("/api/matchdays/{$matchday->id}/matches/bulk", ['rows' => [
-            ['team_id' => $this->team('escoleta-a')->id, 'status' => 'pending', 'home_away' => 'home', 'opponent' => 'CE Besalú'],
-            ['team_id' => $this->team('cadet-a')->id, 'status' => 'pending', 'home_away' => 'away', 'opponent' => 'UE Figueres', 'round_label' => 'Jornada 5'],
-            ['team_id' => $this->team('juvenil-a')->id, 'status' => 'rest'],
+            ['team_id' => $this->team('escoleta-a')->id, 'status' => 'confirmed', 'home_away' => 'home', 'opponent' => 'CE Besalú'],
+            ['team_id' => $this->team('cadet-a')->id, 'status' => 'confirmed', 'home_away' => 'away', 'opponent' => 'UE Figueres', 'round_label' => 'Jornada 5'],
+            ['team_id' => $this->team('juvenil-a')->id, 'home_away' => 'home', 'opponent' => 'UE Llagostera'],
         ]])->assertOk()->assertJsonCount(3, 'data');
 
         $this->assertSame(3, GameMatch::query()->where('matchday_id', $matchday->id)->count());
@@ -36,12 +36,12 @@ class QuickEntryTest extends TestCase
     {
         $matchday = $this->weekend();
         $team = $this->team('escoleta-a');
-        $row = ['team_id' => $team->id, 'status' => 'pending', 'home_away' => 'home'];
+        $row = ['team_id' => $team->id, 'status' => 'confirmed', 'home_away' => 'home'];
 
         $this->spa()->postJson("/api/matchdays/{$matchday->id}/matches/bulk", ['rows' => [$row]])->assertOk();
 
         $errors = $this->spa()->postJson("/api/matchdays/{$matchday->id}/matches/bulk", ['rows' => [
-            ['team_id' => $this->team('escoleta-b')->id, 'status' => 'pending', 'home_away' => 'home'],
+            ['team_id' => $this->team('escoleta-b')->id, 'status' => 'confirmed', 'home_away' => 'home'],
             $row,
         ]])->assertUnprocessable()->json('errors');
 

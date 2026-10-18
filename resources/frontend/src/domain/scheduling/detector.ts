@@ -6,7 +6,7 @@ import type { Area, Conflict, ConflictCode, InputMatch, InputRule, ScheduleInput
  * Totes dues implementacions passen les fixtures de tests/fixtures/scheduling.
  */
 
-const ACTIVE = ['pending', 'proposed', 'confirmed'];
+const ACTIVE = ['proposed', 'confirmed'];
 const HALVES: Area[] = ['camp_1', 'camp_2'];
 
 export function minutes(time: string): number {

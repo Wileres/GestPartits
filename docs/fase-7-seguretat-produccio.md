@@ -2,6 +2,8 @@
 
 > Estado: terminada. Fecha: 2026-10-16.
 
+> **Nota (2026-10-18, D-056 a D-061):** els partits només tenen els estats **Proposat, Confirmat i Cancel·lat** (un partit nou és *Confirmat*; «Pendent», «Ajornat» i «Descansa» ja no existeixen: un equip sense partit simplement no en té). L'**escut** és únic per a tot el club (Configuració → Aparença) i ja no es puja per equip. L'**horari preferent** de cada equip s'edita des de la seva fitxa i es carrega en crear un partit a casa, amb la convocatòria una hora abans. Els partits **ja no es protegeixen pel seu estat**: només el bloqueig impedeix que la proposta automàtica els mogui.
+
 ## Medidas de seguridad implementadas
 
 | Requisito | Implementación | Prueba |

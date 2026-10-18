@@ -44,9 +44,11 @@ class ScheduleInputFactory
     }
 
     /**
+     * Dies de la jornada («AAAA-MM-DD»), del primer a l'últim.
+     *
      * @return list<string>
      */
-    private function dates(Matchday $matchday): array
+    public function dates(Matchday $matchday): array
     {
         $dates = [];
         for ($day = CarbonImmutable::parse($matchday->starts_on->toDateString()); $day->lte($matchday->ends_on); $day = $day->addDay()) {
@@ -118,9 +120,11 @@ class ScheduleInputFactory
     }
 
     /**
+     * Regles actives (preferència i finestres).
+     *
      * @return list<RuleSpec>
      */
-    private function rules(): array
+    public function rules(): array
     {
         return SchedulingRule::query()->with(['team', 'category', 'preferredFieldArea'])->where('is_active', true)->orderBy('id')->get()
             ->map(fn (SchedulingRule $rule) => new RuleSpec(

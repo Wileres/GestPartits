@@ -20,7 +20,7 @@
 | 16 | No se duplica un envío de WhatsApp | `WhatsAppNotificationTest::test_message_is_sent_once_and_never_duplicated` |
 | 17 | Un usuario sin permisos no puede cambiar la configuración | `ConfigurationAuthorizationTest`, `RouteProtectionTest::test_configuration_routes_are_forbidden_to_managers`, `CategoryApiTest::test_manager_cannot_change_categories`, `WhatsAppNotificationTest::test_manager_cannot_change_templates_or_destinations` |
 | 18 | La contraseña no se guarda en texto plano | `PasswordStorageTest` |
-| 19 | Se rechazan los tipos de archivo no permitidos | `TeamLogoUploadTest` (SVG, GIF, PHP disfrazado de PNG, extensión `.php`, tamaño) |
+| 19 | Se rechazan los tipos de archivo no permitidos | `ClubLogoTest` (escudo del club: SVG, GIF, PHP disfrazado de PNG, extensión `.php` y tamaño rechazados) |
 | 20 | La regeneración respeta los partidos bloqueados | `ProposalEngineTest::test_regeneration_respects_locked_matches`; `ScheduleApiTest::test_manual_move_locks_the_match_and_regeneration_respects_it` |
 | 21 | Imágenes de sábado y domingo | `ImageGenerationTest::test_saturday_and_sunday_images_are_generated_at_1080x1920`, `…test_chromium_renders_a_real_1080x1920_image`, `LayoutPlannerTest` |
 | 22 | Textos visibles en catalán | `CatalanTranslationsTest`; frontend `i18n.test.ts` (sin inglés ni castellano habituales) y `noHardcodedText.test.ts` (sin textos JSX escritos directamente) |

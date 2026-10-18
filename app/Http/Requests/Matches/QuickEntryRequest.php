@@ -3,7 +3,6 @@
 namespace App\Http\Requests\Matches;
 
 use App\Enums\HomeAway;
-use App\Enums\MatchStatus;
 use App\Models\GameMatch;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -27,8 +26,7 @@ class QuickEntryRequest extends FormRequest
         return [
             'rows' => ['required', 'array', 'min:1', 'max:100'],
             'rows.*.team_id' => ['required', 'integer', 'distinct', Rule::exists('teams', 'id')->whereNull('deleted_at')],
-            'rows.*.status' => ['required', Rule::enum(MatchStatus::class)],
-            'rows.*.home_away' => ['nullable', 'required_unless:rows.*.status,'.MatchStatus::Rest->value, Rule::enum(HomeAway::class)],
+            'rows.*.home_away' => ['required', Rule::enum(HomeAway::class)],
             'rows.*.opponent' => ['nullable', 'string', 'max:128'],
             'rows.*.round_label' => ['nullable', 'string', 'max:64'],
         ];
@@ -63,7 +61,6 @@ class QuickEntryRequest extends FormRequest
         return [
             'rows' => 'partits',
             'rows.*.team_id' => 'equip',
-            'rows.*.status' => 'estat',
             'rows.*.home_away' => 'condició',
             'rows.*.opponent' => 'rival',
             'rows.*.round_label' => 'jornada de competició',
@@ -72,6 +69,6 @@ class QuickEntryRequest extends FormRequest
 
     public function messages(): array
     {
-        return ['rows.*.home_away.required_unless' => 'Indica si el partit és a casa o a fora.'];
+        return ['rows.*.home_away.required' => 'Indica si el partit és a casa o a fora.'];
     }
 }

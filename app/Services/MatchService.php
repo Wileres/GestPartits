@@ -8,14 +8,18 @@ use App\Enums\MatchStatus;
 use App\Models\GameMatch;
 use App\Models\Matchday;
 use App\Models\Team;
+use App\Services\Scheduling\PreferredScheduleService;
 use App\Services\Scheduling\ScheduleService;
+use App\Support\CallTime;
 use App\Support\ClubSettings;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
 /**
  * Alta i modificació de partits amb valors per defecte de l'equip i normalització segons
- * la condició (casa / fora / descansa). Les modificacions usen bloqueig optimista.
+ * la condició (casa / fora). Un partit nou es desa com a «Confirmat»; si és a casa i no s'indica horari,
+ * es carrega l'horari preferent de l'equip i la convocatòria és una hora abans del partit.
+ * Les modificacions usen bloqueig optimista.
  */
 class MatchService
 {
@@ -25,6 +29,7 @@ class MatchService
     public function __construct(
         private readonly ClubSettings $settings,
         private readonly ScheduleService $schedules,
+        private readonly PreferredScheduleService $preferred,
     ) {}
 
     /**
@@ -37,6 +42,7 @@ class MatchService
 
             $match = new GameMatch([
                 'matchday_id' => $matchday->id,
+                'status' => MatchStatus::default(),
                 'game_format' => $team->effectiveGameFormat(),
                 'duration_min' => $team->effectiveDurationMin(),
                 'post_min' => $team->effectivePostMin(),
@@ -45,6 +51,8 @@ class MatchService
             ]);
 
             $this->apply($match, $team, $data);
+            $this->applyPreferredSchedule($match, $team, $matchday, $data);
+            $match->call_time = $match->home_away === HomeAway::Home ? CallTime::follow($match->call_time, null, $match->kickoff_time) : $match->call_time;
             $match->save();
             $this->schedules->markChanged($matchday);
 
@@ -69,7 +77,12 @@ class MatchService
             $team = Team::query()->with('category')->findOrFail($data['team_id']);
             unset($data['lock_version']);
 
+            $hadKickoff = $match->kickoff_time !== null;
             $this->apply($match, $team, $data);
+            // Un partit a casa que acaba de rebre hora de partit proposa la convocatòria per defecte.
+            if (! $hadKickoff && $match->home_away === HomeAway::Home) {
+                $match->call_time = CallTime::follow($match->call_time, null, $match->kickoff_time);
+            }
             $match->lock_version++;
             $match->save();
             $this->schedules->markChanged($match->loadMissing('matchday')->matchday);
@@ -117,12 +130,6 @@ class MatchService
             $match->post_min = $team->effectivePostMin();
         }
 
-        if ($match->status === MatchStatus::Rest) {
-            $this->clearForRest($match);
-
-            return;
-        }
-
         if ($match->home_away === HomeAway::Home) {
             $match->venue_id = $this->settings->homeVenue()->id;
             $match->venue_name = null;
@@ -157,13 +164,28 @@ class MatchService
         $match->placement_source = null;
     }
 
-    private function clearForRest(GameMatch $match): void
+    /**
+     * Partit a casa nou sense data ni hora: carrega l'horari preferent de l'equip (si en té).
+     * No es bloqueja: la proposta automàtica el pot tornar a col·locar si hi ha un conflicte.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function applyPreferredSchedule(GameMatch $match, Team $team, Matchday $matchday, array $data): void
     {
-        foreach (['home_away', 'opponent', 'match_date', 'kickoff_time', 'call_time', 'field_area_id', 'venue_id', 'venue_name', 'address', 'municipality', 'maps_url', 'placement_source'] as $field) {
-            $match->{$field} = null;
+        $given = ($data['match_date'] ?? null) !== null || ($data['kickoff_time'] ?? null) !== null || ($data['field_area_id'] ?? null) !== null;
+
+        if ($match->home_away !== HomeAway::Home || $match->status === MatchStatus::Cancelled || $given || $match->kickoff_time !== null) {
+            return;
         }
 
-        $match->is_locked = false;
-        $match->show_in_image = false;
+        $default = $this->preferred->placementFor($match, $team, $matchday);
+        if ($default === null) {
+            return;
+        }
+
+        $match->match_date = $default['date'];
+        $match->kickoff_time = $default['kickoff'];
+        $match->field_area_id = $default['field_area_id'];
+        $match->placement_source = 'auto';
     }
 }

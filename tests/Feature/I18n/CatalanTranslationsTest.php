@@ -43,7 +43,7 @@ class CatalanTranslationsTest extends TestCase
     public function test_match_statuses_are_labelled_in_catalan(): void
     {
         $this->assertSame(
-            ['Pendent', 'Proposat', 'Confirmat', 'Ajornat', 'Cancel·lat', 'Descansa'],
+            ['Proposat', 'Confirmat', 'Cancel·lat'],
             array_map(fn (MatchStatus $s) => $s->label(), MatchStatus::cases()),
         );
     }

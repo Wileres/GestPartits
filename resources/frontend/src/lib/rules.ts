@@ -1,4 +1,4 @@
-import type { FieldArea, SchedulingRule } from '@/api/types';
+import type { FieldArea, PreferredSchedule, SchedulingRule } from '@/api/types';
 import { t } from '@/i18n/ca';
 import { weekdayName } from './dates';
 
@@ -18,4 +18,14 @@ export function describeRule(rule: SchedulingRule, areas: FieldArea[] = []): str
     if (rule.not_after !== null) parts.push(`${t('rules.notAfter').toLowerCase()} ${rule.not_after}`);
 
     return parts.join(' · ');
+}
+
+/**
+ * Horari preferent d'un equip: «dissabte 11:15 · Camp 1».
+ */
+export function describePreference(preference: PreferredSchedule, areas: FieldArea[] = []): string {
+    const day = preference.weekday === null ? '' : `${weekdayName(preference.weekday)} `;
+    const area = areas.find((a) => a.id === preference.field_area_id);
+
+    return `${day}${preference.time ?? ''}${area === undefined ? '' : ` · ${area.name}`}`.trim();
 }

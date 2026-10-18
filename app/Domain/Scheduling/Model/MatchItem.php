@@ -11,7 +11,7 @@ final readonly class MatchItem
 
     public const FORMAT_F11 = 'f11';
 
-    public const ACTIVE_STATUSES = ['pending', 'proposed', 'confirmed'];
+    public const ACTIVE_STATUSES = ['proposed', 'confirmed'];
 
     public function __construct(
         public int $id,
@@ -49,7 +49,7 @@ final readonly class MatchItem
             teamOrder: (int) ($data['team_order'] ?? 0),
             format: (string) $data['format'],
             homeAway: $data['home_away'] ?? null,
-            status: (string) ($data['status'] ?? 'pending'),
+            status: (string) ($data['status'] ?? 'confirmed'),
             date: $data['date'] ?? null,
             kickoff: Minutes::parseOrNull($data['kickoff'] ?? null),
             area: $data['area'] ?? null,

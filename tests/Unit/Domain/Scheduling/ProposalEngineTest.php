@@ -45,7 +45,7 @@ class ProposalEngineTest extends TestCase
             $rows[] = [
                 'id' => $overrides['id'] ?? ++$id, 'team_id' => $teamId, 'team' => $name, 'category_id' => $categoryId,
                 'category_order' => $categoryOrder, 'team_order' => $teamId, 'format' => $format, 'home_away' => 'home',
-                'status' => 'pending', 'date' => null, 'kickoff' => null, 'area' => null, 'duration' => $duration,
+                'status' => 'confirmed', 'date' => null, 'kickoff' => null, 'area' => null, 'duration' => $duration,
                 'post' => 10, 'gap' => 0, 'call' => null, 'locked' => false, 'override' => null, 'venue' => null,
                 ...$overrides,
             ];
@@ -174,10 +174,10 @@ class ProposalEngineTest extends TestCase
         $this->assertSame([self::SAT, '12:30'], array_slice(array_values($this->placement($result, 2)), 0, 2));
     }
 
-    public function test_confirmed_matches_are_not_moved_and_their_field_is_respected(): void
+    public function test_locked_matches_are_not_moved_and_their_field_is_respected(): void
     {
         $input = $this->input([
-            'cadet-a' => ['status' => 'confirmed', 'date' => self::SAT, 'kickoff' => '09:00', 'area' => 'full'],
+            'cadet-a' => ['date' => self::SAT, 'kickoff' => '09:00', 'area' => 'full', 'locked' => true],
             'infantil-a' => [],
         ], ['rules' => []]);
 
@@ -186,6 +186,29 @@ class ProposalEngineTest extends TestCase
         $this->assertArrayNotHasKey(1, $result->placements);
         // El Cadet ocupa de 09:00 a 10:35: l'Infantil va després.
         $this->assertSame(['date' => self::SAT, 'kickoff' => '10:45', 'area' => 'full'], $this->placement($result, 2));
+    }
+
+    public function test_confirmed_matches_that_are_not_locked_are_repositioned(): void
+    {
+        // Els partits es creen «confirmats»: només el bloqueig impedeix que la proposta els mogui.
+        $input = $this->input([
+            'alevi-a' => ['status' => 'confirmed', 'date' => self::SUN, 'kickoff' => '10:00', 'area' => 'camp_2'],
+            'cadet-a' => ['status' => 'proposed', 'date' => self::SUN, 'kickoff' => '09:00', 'area' => 'full'],
+        ]);
+
+        $result = (new ProposalEngine)->propose($input);
+
+        $this->assertSame([self::SAT, '11:15'], array_slice(array_values($this->placement($result, 1)), 0, 2));
+        $this->assertArrayHasKey(2, $result->placements);
+    }
+
+    public function test_cancelled_matches_are_ignored(): void
+    {
+        $result = (new ProposalEngine)->propose($this->input(['alevi-a' => ['status' => 'cancelled'], 'cadet-a' => []]));
+
+        $this->assertArrayNotHasKey(1, $result->placements);
+        $this->assertArrayHasKey(2, $result->placements);
+        $this->assertArrayNotHasKey(1, $result->unplaced);
     }
 
     public function test_field_blocks_are_avoided(): void
@@ -224,7 +247,7 @@ class ProposalEngineTest extends TestCase
     public function test_unreachable_mandatory_preference_takes_the_nearest_slot_and_reports_it(): void
     {
         $input = $this->input([
-            'cadet-a' => ['status' => 'confirmed', 'date' => self::SAT, 'kickoff' => '17:00', 'area' => 'full'],
+            'cadet-a' => ['date' => self::SAT, 'kickoff' => '17:00', 'area' => 'full', 'locked' => true],
             'primer-equip' => [],
         ], ['rules' => [['id' => 1, 'team_id' => 10, 'weekday' => 6, 'preferred' => '17:00', 'priority' => 100, 'mandatory' => true, 'label' => 'Primer equip']]]);
 

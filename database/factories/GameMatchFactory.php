@@ -27,7 +27,7 @@ class GameMatchFactory extends Factory
             'team_id' => Team::factory(),
             'opponent' => 'CF '.fake()->city(),
             'home_away' => HomeAway::Home,
-            'status' => MatchStatus::Pending,
+            'status' => MatchStatus::Confirmed,
             'game_format' => GameFormat::Football7,
             'duration_min' => 60,
             'post_min' => 10,

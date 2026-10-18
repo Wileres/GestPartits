@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['category_id', 'name', 'slug', 'game_format', 'color', 'match_duration_min', 'post_min', 'logo_path', 'sort_order', 'is_active'])]
+#[Fillable(['category_id', 'name', 'slug', 'game_format', 'color', 'match_duration_min', 'post_min', 'sort_order', 'is_active'])]
 class Team extends Model
 {
     /** @use HasFactory<TeamFactory> */

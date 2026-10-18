@@ -60,7 +60,7 @@ class ImageService
         $subtitle = $matchday->label ?? '';
         $matches = GameMatch::query()->with(['team', 'fieldArea'])
             ->where('matchday_id', $matchday->id)
-            ->whereIn('status', [MatchStatus::Pending->value, MatchStatus::Proposed->value, MatchStatus::Confirmed->value])
+            ->whereIn('status', [MatchStatus::Proposed->value, MatchStatus::Confirmed->value])
             ->where('show_in_image', true)
             ->whereNotNull('match_date')->whereNotNull('kickoff_time')
             ->get()

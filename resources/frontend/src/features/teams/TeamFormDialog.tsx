@@ -1,21 +1,24 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ImageUp, Trash2 } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import { ApiError } from '@/api/client';
 import type { Category, Team } from '@/api/types';
 import { FormField } from '@/components/FormField';
 import { NativeSelect } from '@/components/NativeSelect';
+import { QuarterTimeSelect } from '@/components/TimeFields';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { useReferenceData } from '@/hooks/useReferenceData';
 import { t } from '@/i18n/ca';
 import { describedBy } from '@/lib/a11y';
-import { errorMessage, numberOrNull } from '@/lib/errors';
+import { weekdayName } from '@/lib/dates';
+import { numberOrNull } from '@/lib/errors';
 import { applyServerErrors } from '@/lib/forms';
-import { useSaveTeam, useTeamLogo } from './useTeams';
+import { useSaveTeam } from './useTeams';
 
 const optionalInteger = z.string().refine((v) => v.trim() === '' || /^\d+$/.test(v.trim()), t('common.invalidNumber'));
 
@@ -28,11 +31,18 @@ const schema = z.object({
     match_duration_min: optionalInteger,
     post_min: optionalInteger,
     is_active: z.boolean(),
-});
+    // Horari preferent a casa: dia (buit = cap), hora i camp (buit = qualsevol camp lliure).
+    pref_day: z.string(),
+    pref_time: z.string(),
+    pref_area: z.string(),
+}).refine((v) => v.pref_day === '' || v.pref_time !== '', { message: t('common.required'), path: ['pref_time'] });
 
 type FormValues = z.infer<typeof schema>;
 
-const fields = ['name', 'category_id', 'game_format', 'color', 'match_duration_min', 'post_min', 'is_active'] as const;
+const fields = ['name', 'category_id', 'game_format', 'color', 'match_duration_min', 'post_min', 'is_active', 'pref_day', 'pref_time', 'pref_area'] as const;
+
+/** Dissabte i diumenge primer: són els dies de partit. */
+const WEEKDAY_ORDER = [6, 7, 1, 2, 3, 4, 5] as const;
 
 interface Props {
     open: boolean;
@@ -74,11 +84,28 @@ function TeamForm({ team, categories, onDone }: { team: Team | null; categories:
             match_duration_min: team?.match_duration_min?.toString() ?? '',
             post_min: team?.post_min?.toString() ?? '',
             is_active: team?.is_active ?? true,
+            pref_day: team?.preferred_schedule?.weekday?.toString() ?? '',
+            pref_time: team?.preferred_schedule?.time ?? '',
+            pref_area: team?.preferred_schedule?.field_area_id?.toString() ?? '',
         },
     });
 
     const categoryId = useWatch({ control, name: 'category_id' });
     const category = categories.find((c) => String(c.id) === categoryId);
+    const { data: reference } = useReferenceData();
+    const gameFormat = useWatch({ control, name: 'game_format' });
+    const prefDay = useWatch({ control, name: 'pref_day' });
+    // El format efectiu: el propi de l'equip o el de la seva categoria (si s'està canviant de categoria, la triada).
+    const effectiveFormat = gameFormat === '' ? (category?.game_format ?? team?.category.game_format) : gameFormat;
+    const areas = (reference?.field_areas ?? []).filter((area) => effectiveFormat !== 'f11' || area.kind === 'full');
+    const inherited = team?.inherited_preference ?? null;
+    const inheritedText =
+        inherited === null || inherited.weekday === null || inherited.time === null
+            ? null
+            : t('teams.inheritedPreference', {
+                  source: t(`teams.inheritedSource.${inherited.source}`),
+                  value: `${weekdayName(inherited.weekday)} ${inherited.time}`,
+              });
     const useColor = useWatch({ control, name: 'use_color' });
 
     const onSubmit = handleSubmit((values) => {
@@ -94,6 +121,8 @@ function TeamForm({ team, categories, onDone }: { team: Team | null; categories:
                     match_duration_min: numberOrNull(values.match_duration_min),
                     post_min: numberOrNull(values.post_min),
                     is_active: values.is_active,
+                    preferred_schedule:
+                        values.pref_day === '' ? null : { weekday: Number(values.pref_day), time: values.pref_time, field_area_id: numberOrNull(values.pref_area) },
                 },
             },
             {
@@ -101,7 +130,17 @@ function TeamForm({ team, categories, onDone }: { team: Team | null; categories:
                     toast.success(team === null ? t('teams.created') : t('teams.updated'));
                     onDone();
                 },
-                onError: (error) => setFormError(applyServerErrors(error, setError, fields)),
+                onError: (error) => {
+                    // Els errors del servidor de l'horari preferent surten als camps corresponents.
+                    const mapped: Record<string, (typeof fields)[number]> = { 'preferred_schedule.weekday': 'pref_day', 'preferred_schedule.time': 'pref_time', 'preferred_schedule.field_area_id': 'pref_area' };
+                    if (error instanceof ApiError) {
+                        for (const [key, field] of Object.entries(mapped)) {
+                            const message = error.firstError(key);
+                            if (message !== undefined) setError(field, { type: 'server', message });
+                        }
+                    }
+                    setFormError(applyServerErrors(error, setError, fields));
+                },
             },
         );
     });
@@ -173,7 +212,46 @@ function TeamForm({ team, categories, onDone }: { team: Team | null; categories:
                 <input type="checkbox" className="size-4 accent-primary" {...register('is_active')} />
                 {t('common.active')}
             </label>
-            {team !== null && <LogoField team={team} />}
+            <fieldset className="grid gap-3 rounded-lg border border-primary/20 bg-secondary/40 p-3">
+                <legend className="px-1 text-sm font-semibold text-primary">{t('teams.preferredSchedule')}</legend>
+                <p className="text-xs text-muted-foreground">{t('teams.preferredHelp')}</p>
+                <div className="grid gap-3 sm:grid-cols-3">
+                    <FormField id="team-pref-day" label={t('teams.preferredDay')} error={errors.pref_day?.message}>
+                        <NativeSelect id="team-pref-day" {...register('pref_day')}>
+                            <option value="">{t('teams.preferredNone')}</option>
+                            {WEEKDAY_ORDER.map((day) => (
+                                <option key={day} value={day}>
+                                    {weekdayName(day)}
+                                </option>
+                            ))}
+                        </NativeSelect>
+                    </FormField>
+                    <FormField id="team-pref-time" label={t('teams.preferredTime')} error={errors.pref_time?.message}>
+                        <QuarterTimeSelect
+                            id="team-pref-time"
+                            from={reference?.operating_hours.first_kickoff}
+                            to={reference?.operating_hours.last_kickoff}
+                            step={reference?.kickoff_step_min}
+                            emptyLabel={t('common.none')}
+                            disabled={prefDay === ''}
+                            aria-invalid={errors.pref_time !== undefined}
+                            {...register('pref_time')}
+                        />
+                    </FormField>
+                    <FormField id="team-pref-area" label={t('teams.preferredField')} error={errors.pref_area?.message}>
+                        <NativeSelect id="team-pref-area" disabled={prefDay === ''} {...register('pref_area')}>
+                            <option value="">{t('teams.anyField')}</option>
+                            {areas.map((area) => (
+                                <option key={area.id} value={area.id}>
+                                    {area.name}
+                                </option>
+                            ))}
+                        </NativeSelect>
+                    </FormField>
+                </div>
+                {prefDay === '' && inheritedText !== null && <p className="text-xs text-muted-foreground">{inheritedText}</p>}
+            </fieldset>
+            <p className="text-xs text-muted-foreground">{t('teams.crestNote')}</p>
             <DialogFooter>
                 <Button type="button" variant="outline" onClick={onDone}>
                     {t('common.cancel')}
@@ -183,42 +261,5 @@ function TeamForm({ team, categories, onDone }: { team: Team | null; categories:
                 </Button>
             </DialogFooter>
         </form>
-    );
-}
-
-function LogoField({ team }: { team: Team }) {
-    const { upload, remove } = useTeamLogo();
-    const input = useRef<HTMLInputElement>(null);
-
-    const onFile = (file: File | undefined) => {
-        if (file === undefined) return;
-        upload.mutate(
-            { id: team.id, file },
-            {
-                onSuccess: () => toast.success(t('teams.logoUploaded')),
-                onError: (error) => toast.error(errorMessage(error)),
-            },
-        );
-    };
-
-    return (
-        <div className="grid gap-2 rounded-lg border p-3">
-            <p className="text-sm font-medium">{t('teams.logo')}</p>
-            <div className="flex flex-wrap items-center gap-3">
-                {team.logo_url !== null && <img src={team.logo_url} alt="" className="size-12 rounded border bg-white object-contain" />}
-                <input ref={input} type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={(e) => onFile(e.target.files?.[0])} />
-                <Button type="button" variant="outline" size="sm" onClick={() => input.current?.click()} disabled={upload.isPending}>
-                    <ImageUp aria-hidden />
-                    {t('teams.uploadLogo')}
-                </Button>
-                {team.has_logo && (
-                    <Button type="button" variant="ghost" size="sm" onClick={() => remove.mutate(team.id)} disabled={remove.isPending}>
-                        <Trash2 aria-hidden />
-                        {t('teams.deleteLogo')}
-                    </Button>
-                )}
-            </div>
-            <p className="text-xs text-muted-foreground">{t('teams.logoHelp')}</p>
-        </div>
     );
 }

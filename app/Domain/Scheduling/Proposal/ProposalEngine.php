@@ -12,8 +12,8 @@ use App\Domain\Scheduling\Rules\RuleResolver;
 /**
  * Proposta automàtica d'horaris per als partits a casa.
  *
- *  1. Es mouen només els partits actius a casa que no estan bloquejats ni confirmats.
- *  2. Els partits fixos (bloquejats o confirmats) i els bloquejos ocupen el camp abans de començar.
+ *  1. Es mouen només els partits actius a casa que no estan bloquejats.
+ *  2. Els partits bloquejats i els bloquejos del camp l'ocupen abans de començar.
  *  3. Ordre: regles obligatòries, regles recomanades (per prioritat), partits sense regla; dins de cada grup,
  *     primer el que té menys possibilitats, després l'ordre de categoria i d'equip i l'id.
  *  4. Cada partit va al candidat amb la puntuació més baixa: amb preferència, el més proper al dia, hora i
@@ -96,7 +96,7 @@ final class ProposalEngine
 
     private function isMovable(MatchItem $m): bool
     {
-        return $m->isActive() && $m->isHome() && ! $m->locked && $m->status !== 'confirmed';
+        return $m->isActive() && $m->isHome() && ! $m->locked;
     }
 
     /**

@@ -1,4 +1,4 @@
-import { Bus, CircleCheck, CircleDashed, CircleSlash, Clock, House, Lock, PauseCircle, Sparkles } from 'lucide-react';
+import { Bus, CircleCheck, CircleSlash, House, Lock, Sparkles } from 'lucide-react';
 import type { ComponentType } from 'react';
 import type { HomeAway, MatchStatus } from '@/api/types';
 import { Badge } from '@/components/ui/badge';
@@ -6,12 +6,9 @@ import { t } from '@/i18n/ca';
 import { cn } from '@/lib/utils';
 
 const statusStyle: Record<MatchStatus, { icon: ComponentType<{ className?: string }>; className: string }> = {
-    pending: { icon: Clock, className: 'border-status-warning/40 bg-status-warning-soft text-status-warning' },
     proposed: { icon: Sparkles, className: 'border-primary/30 bg-secondary text-primary' },
     confirmed: { icon: CircleCheck, className: 'border-status-locked/40 bg-status-locked-soft text-status-locked' },
-    postponed: { icon: PauseCircle, className: 'border-muted-foreground/30 bg-muted text-muted-foreground' },
     cancelled: { icon: CircleSlash, className: 'border-muted-foreground/30 bg-muted text-muted-foreground line-through' },
-    rest: { icon: CircleDashed, className: 'border-muted-foreground/30 bg-muted text-muted-foreground' },
 };
 
 /** Estat del partit: sempre amb icona i text, mai només color. */

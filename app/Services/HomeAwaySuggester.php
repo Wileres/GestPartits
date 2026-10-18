@@ -27,7 +27,7 @@ class HomeAwaySuggester
             ->whereIn('matches.team_id', $teamIds)
             ->where('matchdays.starts_on', '<', $matchday->starts_on->toDateString())
             ->whereNotNull('matches.home_away')
-            ->whereNotIn('matches.status', [MatchStatus::Rest->value, MatchStatus::Postponed->value, MatchStatus::Cancelled->value])
+            ->where('matches.status', '!=', MatchStatus::Cancelled->value)
             ->orderByDesc('matchdays.starts_on')
             ->orderByDesc('matches.match_date')
             ->orderByDesc('matches.id')

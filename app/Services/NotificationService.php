@@ -59,7 +59,7 @@ class NotificationService
         DB::transaction(function () use ($schedule): void {
             $matches = GameMatch::query()->with(['team', 'fieldArea'])
                 ->where('matchday_id', $schedule->matchday_id)
-                ->whereIn('status', [MatchStatus::Pending->value, MatchStatus::Proposed->value, MatchStatus::Confirmed->value])
+                ->whereIn('status', [MatchStatus::Proposed->value, MatchStatus::Confirmed->value])
                 ->orderBy('id')->get();
 
             // Missatges de partit per als destins de cada equip.

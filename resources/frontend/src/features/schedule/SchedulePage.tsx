@@ -105,7 +105,7 @@ function ScheduleBoard({ matchdayId, reference }: { matchdayId: number; referenc
     const homeMatches = schedule.matches.filter(isHomeActive);
     const placed = homeMatches.filter((m) => m.kickoff_time !== null && m.match_date !== null);
     const unscheduled = homeMatches.filter((m) => m.kickoff_time === null || m.match_date === null);
-    const away = schedule.matches.filter((m) => m.home_away === 'away' && ['pending', 'proposed', 'confirmed'].includes(m.status));
+    const away = schedule.matches.filter((m) => m.home_away === 'away' && ['proposed', 'confirmed'].includes(m.status));
     const range = visibleRange(schedule.input, placed);
     const stateOf = (match: Match) => conflictsByMatch.get(match.id) ?? { state: 'valid' as CardState, count: 0 };
     const areaId = (code: Area) => reference.field_areas.find((a) => a.code === code)?.id ?? null;

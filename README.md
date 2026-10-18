@@ -4,13 +4,13 @@ Programació dels partits de futbol del **Joventut Sant Pere Màrtir**: equips, 
 
 - **Backend:** Laravel 13 (PHP 8.5), API REST, MariaDB o MySQL, Sanctum (sessió amb cookie i CSRF), cues a la base de dades.
 - **Frontend:** React 19 i TypeScript, Vite, Tailwind CSS 4, shadcn/ui i dnd-kit.
-- **Documentació:** `docs/fase-1-analisi-arquitectura.md` … `docs/fase-7-seguretat-produccio.md`, el registre de decisions `docs/DECISIONS.md` i la correspondència de les proves `docs/proves.md`.
+- **Documentació:** `docs/fase-1-analisi-arquitectura.md` … `docs/fase-8-canvis-equips-estats-escut.md`, el registre de decisions `docs/DECISIONS.md` i la correspondència de les proves `docs/proves.md`.
 
 ## Funcionament
 
-1. **Configuració** (administrador): categories, equips, franges horàries, bloquejos del camp, regles horàries, plantilles i destins de WhatsApp, i aparença.
+1. **Configuració** (administrador): categories, franges horàries, bloquejos del camp, regles horàries, plantilles i destins de WhatsApp, i aparença.
 2. **Temporades:** es crea la jornada (per exemple, dissabte i diumenge).
-3. **Partits:** amb el full ràpid es marca cada equip com a casa, a fora o descansa. L'aplicació suggereix l'opció a partir de l'últim partit.
+3. **Partits:** amb el full ràpid es marca cada equip com a casa o a fora (suggeriment a partir de l'últim partit). Els partits nous es desen com a **confirmats**; els de casa carreguen l'**horari preferent** de l'equip i la convocatòria és **una hora abans**. Els partits només tenen tres estats: Proposat, Confirmat i Cancel·lat.
 4. **Programació:** «Genera una proposta» col·loca els partits a casa segons les franges, la capacitat del camp (2 partits de futbol 7 alhora, o 1 de futbol 11) i les regles. Després es pot ajustar arrossegant les targetes.
 5. **Confirma la programació:** no es pot confirmar mentre hi hagi conflictes crítics.
 6. **Imatges i avisos:**
@@ -72,6 +72,19 @@ php artisan queue:work     # imatges i avisos
 ```
 
 Es crea l'usuari `Gestor`, amb rol d'administrador, que haurà de canviar la contrasenya en el primer accés.
+
+### Arrencada ràpida
+
+Un cop feta la instal·lació anterior, `./dev.sh` arrenca el servidor, la cua i Vite d'una vegada i els atura amb Ctrl+C:
+
+```bash
+./dev.sh            # servidor + Vite (recàrrega en calent) + cua
+./dev.sh --build    # compila el frontend una vegada, sense Vite
+./dev.sh --fresh    # buida la base de dades i la torna a omplir (demana confirmació)
+./dev.sh --test     # proves del backend i del frontend
+```
+
+Comprova els requisits, instal·la les dependències que falten, aplica les migracions i avisa si MariaDB no està en marxa o si el port 8000 és ocupat. S'ha d'executar amb el vostre usuari, no amb root.
 
 ## Instal·lació a producció (Debian)
 

@@ -59,3 +59,9 @@ Formato: `D-NNN · fecha · estado` (Propuesta / Aceptada / Sustituida). Detalle
 | D-053 | 2026-10-16 | Aceptada | Registros filtrados por un procesador de Monolog (`RedactingTap`) | Que no se filtren contraseñas, tokens ni teléfonos aunque una excepción los incluya |
 | D-054 | 2026-10-16 | Aceptada | Proxies de confianza con un middleware que lee `config('gestpartits.trusted_proxies')` | Compatible con `config:cache` (`env()` no funciona fuera de `config`) |
 | D-055 | 2026-10-16 | Aceptada | La copia de seguridad incluye el `.env` | Sin `APP_KEY` no se pueden descifrar los identificadores de WhatsApp |
+| D-056 | 2026-10-18 | Aceptada | Estados de partido: solo `proposed`, `confirmed` y `cancelled`; el estado por defecto es `confirmed`. «Descansa» desaparece (un equipo sin partido no tiene fila) | Petición del club |
+| D-057 | 2026-10-18 | Aceptada | La propuesta automática solo respeta el **bloqueo** de los partidos, no su estado | Si todos los partidos nacen confirmados, «confirmado = fijo» anularía la propuesta |
+| D-058 | 2026-10-18 | Aceptada | El horario preferente de un equipo es su regla de preferencia de ámbito equipo; se edita desde la ficha del equipo (gestor y administrador) y se reutiliza la regla existente | Un único lugar donde guardar las preferencias (D-009), sin duplicar reglas |
+| D-059 | 2026-10-18 | Aceptada | Un partido en casa nuevo sin hora carga el horario preferente efectivo (equipo > categoría > modalidad), sin bloquearlo | Petición del club; la propuesta lo puede recolocar |
+| D-060 | 2026-10-18 | Aceptada | Convocatoria por defecto = hora del partido − 60 min (`CallTime`); una convocatoria por defecto sigue al partido cuando se mueve, una propia se respeta | Petición del club |
+| D-061 | 2026-10-18 | Aceptada | Escudo único del club: se elimina el escudo por equipo; el escudo se sirve públicamente (`/api/public/logo`) para el login | Petición del club; el escudo no es información sensible |

@@ -12,8 +12,6 @@ use App\Support\ClubBranding;
 use App\Support\ClubSettings;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Aparença: nom, colors i escut del club (imatges d'Instagram).
@@ -60,14 +58,6 @@ class SettingsController extends Controller
         return $this->state();
     }
 
-    public function logo(): StreamedResponse
-    {
-        $path = $this->branding->values()['logo_path'];
-        abort_if($path === null || ! Storage::disk('local')->exists($path), 404);
-
-        return Storage::disk('local')->response($path, 'escut.png', ['Content-Type' => 'image/png', 'Cache-Control' => 'private, max-age=3600']);
-    }
-
     private function state(): JsonResponse
     {
         $values = $this->branding->values();
@@ -77,7 +67,7 @@ class SettingsController extends Controller
             'primary_color' => $values['primary_color'],
             'primary_dark_color' => $values['primary_dark_color'],
             'has_logo' => $values['logo_path'] !== null,
-            'logo_url' => $values['logo_path'] === null ? null : url('/api/settings/logo').'?v='.substr(md5($values['logo_path']), 0, 8),
+            'logo_url' => $values['logo_path'] === null ? null : url('/api/public/logo').'?v='.substr(md5($values['logo_path']), 0, 8),
         ]]);
     }
 }

@@ -19,6 +19,8 @@ export interface TeamInput {
     match_duration_min: number | null;
     post_min: number | null;
     is_active: boolean;
+    /** Sense la clau no es toca l'horari preferent; null l'esborra. */
+    preferred_schedule?: { weekday: number; time: string; field_area_id: number | null } | null;
 }
 
 export interface SeasonInput {
@@ -52,13 +54,6 @@ export const teamsApi = {
     update: (id: number, input: TeamInput) => api.put<Resource<Team>>(`/teams/${id}`, input).then((r) => r.data),
     remove: (id: number) => api.delete<void>(`/teams/${id}`),
     reorder: (teamIds: number[]) => api.put<void>('/teams/order', { team_ids: teamIds }),
-    uploadLogo: (id: number, file: File) => {
-        const form = new FormData();
-        form.append('logo', file);
-
-        return api.post<Resource<Team>>(`/teams/${id}/logo`, form).then((r) => r.data);
-    },
-    deleteLogo: (id: number) => api.delete<Resource<Team>>(`/teams/${id}/logo`).then((r) => r.data),
 };
 
 export const seasonsApi = {

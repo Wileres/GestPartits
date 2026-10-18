@@ -21,6 +21,7 @@ use App\Models\Matchday;
 use App\Models\Schedule;
 use App\Models\ScheduleVersion;
 use App\Services\AuditLogger;
+use App\Support\CallTime;
 use App\Support\ClubSettings;
 use App\Support\Time;
 use Illuminate\Http\Exceptions\HttpResponseException;
@@ -158,12 +159,15 @@ class ScheduleService
 
             $old = $match->only(['match_date', 'kickoff_time', 'field_area_id']);
             $unschedule = $target['kickoff_time'] === null;
+            $oldKickoff = $match->kickoff_time;
 
             $match->match_date = $target['match_date'];
             $match->kickoff_time = $unschedule ? null : $target['kickoff_time'];
             $match->field_area_id = $unschedule ? null : $target['field_area_id'];
             $match->placement_source = $unschedule ? null : 'manual';
             $match->is_locked = ! $unschedule;
+            // La convocatòria per defecte (una hora abans) segueix el partit; una de pròpia es manté.
+            $match->call_time = CallTime::follow($match->call_time, $oldKickoff, $match->kickoff_time);
             $match->lock_version++;
             $match->save();
 
@@ -280,8 +284,9 @@ class ScheduleService
                 ], 423));
             }
 
+            // Confirmar la programació confirma els partits que encara eren una proposta.
             GameMatch::query()->where('matchday_id', $schedule->matchday_id)
-                ->whereIn('status', [MatchStatus::Pending->value, MatchStatus::Proposed->value])
+                ->where('status', MatchStatus::Proposed->value)
                 ->get()
                 ->each(function (GameMatch $match): void {
                     $match->status = MatchStatus::Confirmed;
@@ -459,15 +464,14 @@ class ScheduleService
 
         foreach (GameMatch::query()->where('matchday_id', $matchday->id)->whereIn('id', $ids)->lockForUpdate()->get() as $match) {
             $placement = $result->placements[$match->id] ?? null;
+            $oldKickoff = $match->kickoff_time;
 
             if ($placement instanceof Placement) {
                 $match->match_date = $placement->date;
                 $match->kickoff_time = Time::fromMinutes($placement->kickoff).':00';
                 $match->field_area_id = $areas[$placement->area];
                 $match->placement_source = 'auto';
-                if ($match->status === MatchStatus::Pending) {
-                    $match->status = MatchStatus::Proposed;
-                }
+                $match->call_time = CallTime::follow($match->call_time, $oldKickoff, $match->kickoff_time);
             } else {
                 $match->kickoff_time = null;
                 $match->field_area_id = null;

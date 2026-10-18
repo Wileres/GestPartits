@@ -110,6 +110,16 @@ export interface BrandingSettings {
     logo_url: string | null;
 }
 
+export interface PublicBranding {
+    club_name: string;
+    logo_url: string | null;
+}
+
+/** Nom i escut del club: no cal haver iniciat la sessió (la pantalla d'accés els mostra). */
+export const publicBrandingApi = {
+    get: () => api.get<Resource<PublicBranding>>('/public/branding').then((r) => r.data),
+};
+
 export const templatesApi = {
     list: () => api.get<Resource<WhatsAppTemplate[]>>('/whatsapp-templates').then((r) => r.data),
     variables: () => api.get<Resource<{ match: string[]; weekend_summary: string[]; line: string[] }>>('/whatsapp-templates/variables').then((r) => r.data),

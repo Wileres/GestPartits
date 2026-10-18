@@ -5,6 +5,7 @@ import { GripVertical, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import type { FieldArea, Team } from '@/api/types';
+import { ClubLogo } from '@/components/ClubLogo';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { PageHeader } from '@/components/PageHeader';
 import { EmptyState, ErrorState, LoadingState } from '@/components/QueryState';
@@ -16,7 +17,7 @@ import { useReferenceData } from '@/hooks/useReferenceData';
 import { t } from '@/i18n/ca';
 import { catalanAnnouncements } from '@/lib/dnd';
 import { errorMessage } from '@/lib/errors';
-import { describeRule } from '@/lib/rules';
+import { describePreference } from '@/lib/rules';
 import { cn } from '@/lib/utils';
 import { TeamFormDialog } from './TeamFormDialog';
 import { useDeleteTeam, useReorderTeams, useTeams } from './useTeams';
@@ -118,7 +119,7 @@ interface RowProps {
 
 function SortableTeamRow({ team, areas, onEdit, onDelete }: RowProps) {
     const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id: team.id });
-    const rules = team.scheduling_rules.filter((rule) => rule.is_active);
+    const preference = team.preferred_schedule ?? team.inherited_preference;
 
     return (
         <li ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition }} className={cn(isDragging && 'relative z-10')}>
@@ -133,11 +134,10 @@ function SortableTeamRow({ team, areas, onEdit, onDelete }: RowProps) {
                 >
                     <GripVertical className="size-4" aria-hidden />
                 </button>
-                {team.logo_url !== null ? (
-                    <img src={team.logo_url} alt="" className="size-9 shrink-0 rounded border bg-white object-contain" />
-                ) : (
-                    <span className="size-9 shrink-0 rounded-full border-2 border-white shadow" style={{ backgroundColor: team.color ?? 'var(--secondary)' }} aria-hidden />
-                )}
+                <span className="relative shrink-0">
+                    <ClubLogo className="size-9" />
+                    {team.color !== null && <span className="absolute -right-1 -bottom-1 size-3.5 rounded-full border-2 border-white shadow" style={{ backgroundColor: team.color }} aria-hidden />}
+                </span>
                 <div className="min-w-0 flex-1">
                     <p className="flex flex-wrap items-center gap-2 font-medium">
                         {team.name}
@@ -147,7 +147,10 @@ function SortableTeamRow({ team, areas, onEdit, onDelete }: RowProps) {
                         {team.category.name} · {t(`labels.format.${team.effective.game_format}`)} · {t('common.minutes', { value: team.effective.match_duration_min })}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                        {t('teams.preferredSchedule')}: {rules.length === 0 ? t('teams.noPreferredSchedule') : rules.map((rule) => describeRule(rule, areas)).join(' · ')}
+                        {t('teams.preferredSchedule')}:{' '}
+                        {preference === null
+                            ? t('teams.noPreferredSchedule')
+                            : `${describePreference(preference, areas)}${team.preferred_schedule === null && team.inherited_preference !== null ? ` (${t(`teams.inheritedSource.${team.inherited_preference.source}`)})` : ''}`}
                     </p>
                 </div>
                 <div className="flex shrink-0 gap-1">

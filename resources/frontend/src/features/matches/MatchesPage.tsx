@@ -16,6 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useTeams } from '@/features/teams/useTeams';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useReferenceData } from '@/hooks/useReferenceData';
+import { cn } from '@/lib/utils';
 import { useMatchdaySelection } from '@/hooks/useMatchdaySelection';
 import { ca, t } from '@/i18n/ca';
 import { emptyToNull, errorMessage } from '@/lib/errors';
@@ -45,7 +46,11 @@ export function MatchesPage() {
     );
 }
 
-type Choice = '' | HomeAway | 'rest';
+type Choice = '' | HomeAway;
+
+/** Els partits a casa es ressalten amb un blau molt suau (a la taula i a les targetes del mòbil). */
+const HOME_ROW = 'bg-primary/[0.06] hover:bg-primary/10';
+const HOME_CARD = 'border-primary/25 bg-primary/[0.05]';
 
 interface Draft {
     choice: Choice;
@@ -85,8 +90,7 @@ function MatchdayMatches({ matchday, reference }: { matchday: Matchday; referenc
 
             return {
                 team_id: team.id,
-                status: draft.choice === 'rest' ? 'rest' : 'pending',
-                home_away: draft.choice === 'rest' || draft.choice === '' ? null : draft.choice,
+                home_away: draft.choice === '' ? null : draft.choice,
                 opponent: emptyToNull(draft.opponent),
                 round_label: null,
             };
@@ -142,7 +146,7 @@ function MatchdayMatches({ matchday, reference }: { matchday: Matchday; referenc
                             }
 
                             return teamMatches.map((match, index) => (
-                                <TableRow key={match.id}>
+                                <TableRow key={match.id} className={cn(match.home_away === 'home' && HOME_ROW)}>
                                     <TableCell className="font-medium">
                                         {index === 0 && <TeamCell team={team} />}
                                     </TableCell>
@@ -153,7 +157,7 @@ function MatchdayMatches({ matchday, reference }: { matchday: Matchday; referenc
                                             {match.is_locked && <LockedBadge />}
                                         </div>
                                     </TableCell>
-                                    <TableCell>{match.status === 'rest' ? t('matches.rest') : (match.opponent ?? t('common.none'))}</TableCell>
+                                    <TableCell>{match.opponent ?? t('common.none')}</TableCell>
                                     <TableCell className="text-sm">
                                         <MatchWhen match={match} />
                                     </TableCell>
@@ -200,7 +204,7 @@ interface TeamCardProps {
 function TeamCard({ team, matches, draft, suggestion, onChange, onEdit }: TeamCardProps) {
     return (
         <li>
-            <Card className="gap-3 px-4 py-3">
+            <Card className={cn('gap-3 px-4 py-3', (matches.some((m) => m.home_away === 'home') || (matches.length === 0 && draft.choice === 'home')) && HOME_CARD)}>
                 <div className="flex items-start justify-between gap-2">
                     <TeamCell team={team} />
                     <Button variant="ghost" size="icon" onClick={() => onEdit(null)} aria-label={`${t('matches.add')}: ${team.name}`}>
@@ -224,7 +228,7 @@ function TeamCard({ team, matches, draft, suggestion, onChange, onEdit }: TeamCa
                                     <StatusBadge status={match.status} />
                                     {match.is_locked && <LockedBadge />}
                                 </span>
-                                <span className="text-sm">{match.status === 'rest' ? t('matches.rest') : (match.opponent ?? t('common.none'))}</span>
+                                <span className="text-sm">{match.opponent ?? t('common.none')}</span>
                             </span>
                             <span className="text-right text-sm">
                                 <MatchWhen match={match} />
@@ -251,7 +255,6 @@ function TeamCell({ team }: { team: Team }) {
 }
 
 function MatchWhen({ match }: { match: Match }) {
-    if (match.status === 'rest') return <span className="text-muted-foreground">{t('common.none')}</span>;
     if (match.match_date === null || match.weekday === null) return <span className="text-muted-foreground">{t('matches.unscheduled')}</span>;
 
     return (
@@ -272,7 +275,7 @@ interface DraftRowProps {
 
 function DraftRow(props: DraftRowProps) {
     return (
-        <TableRow className="bg-muted/30">
+        <TableRow className={cn('bg-muted/30', props.draft.choice === 'home' && HOME_ROW)}>
             <TableCell className="font-medium">
                 <TeamCell team={props.team} />
             </TableCell>
@@ -300,7 +303,6 @@ function DraftControls({ team, draft, suggestion, onChange, cell = false }: Draf
                     <option value="">{t('matches.notEntered')}</option>
                     <option value="home">{t('labels.homeAway.home')}</option>
                     <option value="away">{t('labels.homeAway.away')}</option>
-                    <option value="rest">{t('matches.rest')}</option>
                 </NativeSelect>
                 {suggested !== null && suggestion?.based_on != null && (
                     <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground" title={t('matches.suggestedHelp', { value: t(`labels.homeAway.${suggestion.based_on.home_away}`).toLowerCase() })}>
@@ -313,7 +315,7 @@ function DraftControls({ team, draft, suggestion, onChange, cell = false }: Draf
                 <label htmlFor={opponentId} className={cell ? 'sr-only' : 'mb-1 block text-sm font-medium'}>
                     {cell ? `${t('matches.opponent')} · ${team.name}` : t('matches.opponent')}
                 </label>
-                <Input id={opponentId} value={draft.opponent} onChange={(e) => onChange({ opponent: e.target.value })} disabled={draft.choice === 'rest' || draft.choice === ''} />
+                <Input id={opponentId} value={draft.opponent} onChange={(e) => onChange({ opponent: e.target.value })} disabled={draft.choice === ''} />
             </Wrapper>
         </>
     );

@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\MatchController;
 use App\Http\Controllers\Api\MatchdayController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PasswordController;
+use App\Http\Controllers\Api\PublicBrandingController;
 use App\Http\Controllers\Api\ReferenceDataController;
 use App\Http\Controllers\Api\ScheduleController;
 use App\Http\Controllers\Api\SchedulingRuleController;
@@ -24,6 +25,10 @@ use Illuminate\Support\Facades\Route;
 /*
 | API REST de GestPartits (prefix /api). La SPA obté la cookie CSRF a /sanctum/csrf-cookie.
 */
+
+// Nom i escut del club (la pantalla d'accés els mostra abans d'iniciar la sessió).
+Route::get('public/branding', [PublicBrandingController::class, 'show'])->name('public.branding');
+Route::get('public/logo', [PublicBrandingController::class, 'logo'])->name('public.logo');
 
 Route::prefix('auth')->name('auth.')->group(function (): void {
     Route::post('login', [AuthController::class, 'login'])->middleware('throttle:login')->name('login');
@@ -48,9 +53,6 @@ Route::middleware(['auth:sanctum', 'active', 'password.changed'])->group(functio
     Route::post('categories/durations-reviewed', [CategoryController::class, 'markDurationsReviewed'])->name('categories.durations-reviewed');
     Route::put('teams/order', [TeamController::class, 'reorder'])->name('teams.order');
     Route::apiResource('teams', TeamController::class)->except(['show']);
-    Route::get('teams/{team}/logo', [TeamController::class, 'logo'])->name('teams.logo');
-    Route::post('teams/{team}/logo', [TeamController::class, 'uploadLogo'])->name('teams.logo.upload');
-    Route::delete('teams/{team}/logo', [TeamController::class, 'deleteLogo'])->name('teams.logo.delete');
 
     // Temporades i caps de setmana
     Route::apiResource('seasons', SeasonController::class)->except(['show']);
@@ -98,7 +100,6 @@ Route::middleware(['auth:sanctum', 'active', 'password.changed'])->group(functio
     Route::apiResource('whatsapp-destinations', WhatsAppDestinationController::class)->except(['show'])->parameters(['whatsapp-destinations' => 'whatsapp_destination']);
     Route::get('settings', [SettingsController::class, 'show'])->name('settings.show');
     Route::put('settings', [SettingsController::class, 'update'])->name('settings.update');
-    Route::get('settings/logo', [SettingsController::class, 'logo'])->name('settings.logo');
     Route::post('settings/logo', [SettingsController::class, 'uploadLogo'])->name('settings.logo.upload');
     Route::delete('settings/logo', [SettingsController::class, 'deleteLogo'])->name('settings.logo.delete');
 

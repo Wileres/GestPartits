@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { weekendServer } from './fixtures';
+import { existingMatch, weekendServer } from './fixtures';
 import { adminMe, mockFetch, renderApp } from './helpers';
 
 afterEach(() => vi.unstubAllGlobals());
@@ -23,18 +23,46 @@ describe('full ràpid de partits', () => {
 
         const user = userEvent.setup();
         await user.type(screen.getByLabelText('Rival · Aleví A'), 'CF Olot');
-        await user.selectOptions(screen.getByLabelText('Condició · Primer equip'), 'rest');
+        await user.selectOptions(screen.getByLabelText('Condició · Primer equip'), 'away');
+        await user.type(screen.getByLabelText('Rival · Primer equip'), 'UE Llagostera');
 
         await user.click(screen.getByRole('button', { name: 'Crea els partits (2)' }));
 
         await waitFor(() => expect(calls.some((c) => c.url === '/api/matchdays/7/matches/bulk')).toBe(true));
         const body = JSON.parse(String(calls.find((c) => c.url === '/api/matchdays/7/matches/bulk')?.init.body)) as { rows: unknown[] };
+        // Els partits nous no porten estat: el servidor els desa com a confirmats.
         expect(body.rows).toEqual([
-            { team_id: 1, status: 'pending', home_away: 'home', opponent: 'CF Olot', round_label: null },
-            { team_id: 2, status: 'rest', home_away: null, opponent: null, round_label: null },
+            { team_id: 1, home_away: 'home', opponent: 'CF Olot', round_label: null },
+            { team_id: 2, home_away: 'away', opponent: 'UE Llagostera', round_label: null },
         ]);
     });
 
+    it('ja no ofereix «Descansa»', async () => {
+        mockFetch(weekendServer(adminMe));
+
+        renderApp('/partits');
+
+        const options = within(await screen.findByLabelText('Condició · Primer equip')).getAllByRole('option').map((o) => o.textContent);
+        expect(options).toEqual(['Sense partit', 'Partit a casa', 'Partit a fora']);
+    });
+
+    it('ressalta en blau subtil els partits de casa', async () => {
+        const home = { ...existingMatch, id: 51, team_id: 2, team: { id: 2, name: 'Primer equip', color: null, is_active: true, category: { id: 2, name: 'Primer equip' } }, home_away: 'home', opponent: 'CF Olot' };
+        mockFetch(
+            weekendServer(adminMe, (url) => (url === '/api/matchdays/7/matches' ? { status: 200, body: { data: [existingMatch, home] } } : { status: 404 })),
+        );
+
+        renderApp('/partits');
+
+        const homeRow = (await screen.findByText('CF Olot')).closest('tr') as HTMLElement;
+        const awayRow = screen.getByText('UE Figueres').closest('tr') as HTMLElement;
+        expect(homeRow.className).toContain('bg-primary/[0.06]');
+        expect(awayRow.className).not.toContain('bg-primary/[0.06]');
+
+        // Un equip pendent amb «a casa» seleccionat (suggeriment) també es ressalta.
+        const draftRow = screen.getByLabelText('Condició · Aleví A').closest('tr') as HTMLElement;
+        expect(draftRow.className).toContain('bg-primary/[0.06]');
+    });
     it('mostra els partits ja introduïts amb el seu estat', async () => {
         mockFetch(weekendServer(adminMe));
 
@@ -87,6 +115,9 @@ describe('panell del partit', () => {
         await user.selectOptions(screen.getByLabelText('Data'), '2026-10-17');
         await user.selectOptions(kickoff, '10:15');
         await user.selectOptions(field, '3');
+        // En triar l'hora, la convocatòria es proposa (09:15): es canvia per una de posterior al partit.
+        expect(screen.getByLabelText('Hora de convocatòria')).toHaveValue('09:15');
+        await user.clear(screen.getByLabelText('Hora de convocatòria'));
         await user.type(screen.getByLabelText('Hora de convocatòria'), '10:30');
         await user.click(screen.getByRole('button', { name: 'Desa' }));
 

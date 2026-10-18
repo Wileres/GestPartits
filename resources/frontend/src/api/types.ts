@@ -38,7 +38,7 @@ export interface MessageResponse {
 
 export type GameFormat = 'f7' | 'f11';
 export type HomeAway = 'home' | 'away';
-export type MatchStatus = 'pending' | 'proposed' | 'confirmed' | 'postponed' | 'cancelled' | 'rest';
+export type MatchStatus = 'proposed' | 'confirmed' | 'cancelled';
 export type RuleStrength = 'mandatory' | 'recommended';
 export type FieldAreaKind = 'half' | 'full';
 
@@ -71,6 +71,12 @@ export interface Category {
     teams_count?: number;
 }
 
+export interface PreferredSchedule {
+    weekday: number | null;
+    time: string | null;
+    field_area_id: number | null;
+}
+
 export interface SchedulingRule {
     id: number;
     team_id: number | null;
@@ -101,8 +107,10 @@ export interface Team {
     post_min: number | null;
     effective: { game_format: GameFormat; match_duration_min: number; post_min: number };
     color: string | null;
-    has_logo: boolean;
-    logo_url: string | null;
+    /** Horari preferent a casa propi de l'equip (editable des de la seva fitxa). */
+    preferred_schedule: PreferredSchedule | null;
+    /** Si no en té de propi, el de la categoria o la modalitat. */
+    inherited_preference: (PreferredSchedule & { source: 'category' | 'format' }) | null;
     sort_order: number;
     is_active: boolean;
     scheduling_rules: SchedulingRule[];

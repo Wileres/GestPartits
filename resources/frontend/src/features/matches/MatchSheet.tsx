@@ -21,10 +21,11 @@ import { describedBy } from '@/lib/a11y';
 import { addDays, formatWeekdayDate } from '@/lib/dates';
 import { emptyToNull, errorMessage, numberOrNull } from '@/lib/errors';
 import { applyServerErrors } from '@/lib/forms';
+import { describePreference } from '@/lib/rules';
 import { fromMinutes, isOnGrid, isTime, isWithin, toMinutes } from '@/lib/time';
 import { useDeleteMatch, useSaveMatch } from './useMatches';
 
-const statuses = ['pending', 'proposed', 'confirmed', 'postponed', 'cancelled', 'rest'] as const;
+const statuses = ['proposed', 'confirmed', 'cancelled'] as const;
 const optionalInteger = z.string().refine((v) => v.trim() === '' || /^\d+$/.test(v.trim()), t('common.invalidNumber'));
 const optionalTime = z.string().refine((v) => v === '' || isTime(v), t('common.invalidTime'));
 
@@ -55,13 +56,13 @@ function buildSchema(reference: ReferenceData) {
             show_in_image: z.boolean(),
         })
         .superRefine((v, ctx) => {
-            if (v.status !== 'rest' && v.home_away === '') {
+            if (v.home_away === '') {
                 ctx.addIssue({ code: 'custom', path: ['home_away'], message: t('common.required') });
             }
             if (v.kickoff_time !== '' && v.match_date === '') {
                 ctx.addIssue({ code: 'custom', path: ['match_date'], message: t('common.required') });
             }
-            if (v.home_away === 'home' && v.status !== 'rest' && v.kickoff_time !== '') {
+            if (v.home_away === 'home' && v.kickoff_time !== '') {
                 if (!isTime(v.kickoff_time)) {
                     ctx.addIssue({ code: 'custom', path: ['kickoff_time'], message: t('common.invalidTime') });
                 } else if (!isOnGrid(v.kickoff_time, reference.kickoff_step_min)) {
@@ -147,12 +148,14 @@ function MatchForm({ team, match, matchday, reference, onDone }: MatchFormProps)
         register,
         handleSubmit,
         setError,
+        setValue,
+        getValues,
         control,
         formState: { errors },
     } = useForm<FormValues>({
         resolver: zodResolver(buildSchema(reference)),
         defaultValues: {
-            status: match?.status ?? 'pending',
+            status: match?.status ?? 'confirmed',
             home_away: match?.home_away ?? '',
             opponent: match?.opponent ?? '',
             round_label: match?.round_label ?? '',
@@ -175,16 +178,19 @@ function MatchForm({ team, match, matchday, reference, onDone }: MatchFormProps)
         },
     });
 
-    const status = useWatch({ control, name: 'status' });
     const homeAway = useWatch({ control, name: 'home_away' });
     const gameFormat = useWatch({ control, name: 'game_format' });
     const format: GameFormat = gameFormat === '' ? team.effective.game_format : gameFormat;
     const kickoff = useWatch({ control, name: 'kickoff_time' });
     const duration = Number(useWatch({ control, name: 'duration_min' }));
     const post = Number(useWatch({ control, name: 'post_min' }));
-    const isRest = status === 'rest';
-    const isHome = homeAway === 'home' && !isRest;
-    const isAway = homeAway === 'away' && !isRest;
+    const isHome = homeAway === 'home';
+    const isAway = homeAway === 'away';
+    const preference = team.preferred_schedule ?? team.inherited_preference;
+    const preferredHint =
+        match === null && isHome && kickoff === '' && preference !== null && preference.time !== null
+            ? t('matches.preferredLoaded', { value: describePreference(preference, reference.field_areas) })
+            : null;
     const occupationEnd = isHome && isTime(kickoff) && Number.isFinite(duration + post) ? fromMinutes(toMinutes(kickoff) + duration + post) : null;
 
     const onSubmit = handleSubmit((values) => {
@@ -192,7 +198,7 @@ function MatchForm({ team, match, matchday, reference, onDone }: MatchFormProps)
         const input: MatchInput = {
             team_id: team.id,
             status: values.status,
-            home_away: values.status === 'rest' || values.home_away === '' ? null : values.home_away,
+            home_away: values.home_away === '' ? null : values.home_away,
             opponent: emptyToNull(values.opponent),
             round_label: emptyToNull(values.round_label),
             game_format: values.game_format === '' ? null : values.game_format,
@@ -253,97 +259,106 @@ function MatchForm({ team, match, matchday, reference, onDone }: MatchFormProps)
                         ))}
                     </NativeSelect>
                 </FormField>
-                {!isRest && (
-                    <fieldset className="grid gap-1.5">
-                        <legend className="mb-1.5 text-sm font-medium">{t('matches.condition')}</legend>
-                        <div className="grid grid-cols-2 gap-2">
-                            {(['home', 'away'] as const).map((value) => (
-                                <label
-                                    key={value}
-                                    className="flex cursor-pointer items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm has-checked:border-primary has-checked:bg-secondary has-checked:text-primary"
-                                >
-                                    <input type="radio" value={value} className="sr-only" {...register('home_away')} />
-                                    {value === 'home' ? <House className="size-4" aria-hidden /> : <Bus className="size-4" aria-hidden />}
-                                    {t(`labels.homeAwayShort.${value}`)}
-                                </label>
-                            ))}
-                        </div>
-                        {err('home_away') !== undefined && (
-                            <p role="alert" className="text-sm text-destructive">
-                                {err('home_away')}
-                            </p>
-                        )}
-                    </fieldset>
-                )}
+                <fieldset className="grid gap-1.5">
+                    <legend className="mb-1.5 text-sm font-medium">{t('matches.condition')}</legend>
+                    <div className="grid grid-cols-2 gap-2">
+                        {(['home', 'away'] as const).map((value) => (
+                            <label
+                                key={value}
+                                className="flex cursor-pointer items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm has-checked:border-primary has-checked:bg-secondary has-checked:text-primary"
+                            >
+                                <input type="radio" value={value} className="sr-only" {...register('home_away')} />
+                                {value === 'home' ? <House className="size-4" aria-hidden /> : <Bus className="size-4" aria-hidden />}
+                                {t(`labels.homeAwayShort.${value}`)}
+                            </label>
+                        ))}
+                    </div>
+                    {err('home_away') !== undefined && (
+                        <p role="alert" className="text-sm text-destructive">
+                            {err('home_away')}
+                        </p>
+                    )}
+                </fieldset>
             </div>
 
-            {!isRest && (
-                <>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                        <FormField id="match-opponent" label={t('matches.opponent')} error={err('opponent')}>
-                            <Input id="match-opponent" {...register('opponent')} />
-                        </FormField>
-                        <FormField id="match-round" label={t('matches.round')} error={err('round_label')} help={t('common.optional')}>
-                            <Input id="match-round" aria-describedby={describedBy('match-round', err('round_label'), t('common.optional'))} {...register('round_label')} />
-                        </FormField>
-                    </div>
+            <>
+                <div className="grid gap-4 sm:grid-cols-2">
+                    <FormField id="match-opponent" label={t('matches.opponent')} error={err('opponent')}>
+                        <Input id="match-opponent" {...register('opponent')} />
+                    </FormField>
+                    <FormField id="match-round" label={t('matches.round')} error={err('round_label')} help={t('common.optional')}>
+                        <Input id="match-round" aria-describedby={describedBy('match-round', err('round_label'), t('common.optional'))} {...register('round_label')} />
+                    </FormField>
+                </div>
 
-                    <div className="grid gap-4 sm:grid-cols-3">
-                        <FormField id="match-date" label={t('matches.date')} error={err('match_date')}>
-                            <NativeSelect id="match-date" aria-invalid={err('match_date') !== undefined} {...register('match_date')}>
-                                <option value="">{t('matches.unscheduled')}</option>
-                                {matchdayDates(matchday).map((date) => (
-                                    <option key={date} value={date}>
-                                        {formatWeekdayDate(date)}
-                                    </option>
-                                ))}
-                            </NativeSelect>
-                        </FormField>
-                        <FormField id="match-kickoff" label={t('matches.kickoff')} error={err('kickoff_time')}>
-                            {isHome ? (
-                                <QuarterTimeSelect
-                                    id="match-kickoff"
-                                    from={reference.operating_hours.first_kickoff}
-                                    to={reference.operating_hours.last_kickoff}
-                                    step={reference.kickoff_step_min}
-                                    emptyLabel={t('matches.unscheduled')}
-                                    aria-invalid={err('kickoff_time') !== undefined}
-                                    aria-describedby={describedBy('match-kickoff', err('kickoff_time'))}
-                                    {...register('kickoff_time')}
-                                />
-                            ) : (
-                                <TimeTextInput
-                                    id="match-kickoff"
-                                    aria-invalid={err('kickoff_time') !== undefined}
-                                    aria-describedby={describedBy('match-kickoff', err('kickoff_time'))}
-                                    {...register('kickoff_time')}
-                                />
-                            )}
-                        </FormField>
-                        <FormField id="match-call" label={t('matches.call')} error={err('call_time')}>
-                            <TimeTextInput id="match-call" aria-invalid={err('call_time') !== undefined} {...register('call_time')} />
-                        </FormField>
-                    </div>
-
-                    <div className="grid gap-4 sm:grid-cols-3">
-                        <FormField id="match-format" label={t('matches.format')} error={err('game_format')}>
-                            <NativeSelect id="match-format" {...register('game_format')}>
-                                <option value="">
-                                    {t('matches.defaultFormat')} ({t(`labels.format.${team.effective.game_format}`)})
+                <div className="grid gap-4 sm:grid-cols-3">
+                    <FormField id="match-date" label={t('matches.date')} error={err('match_date')}>
+                        <NativeSelect id="match-date" aria-invalid={err('match_date') !== undefined} {...register('match_date')}>
+                            <option value="">{t('matches.unscheduled')}</option>
+                            {matchdayDates(matchday).map((date) => (
+                                <option key={date} value={date}>
+                                    {formatWeekdayDate(date)}
                                 </option>
-                                <option value="f7">{t('labels.format.f7')}</option>
-                                <option value="f11">{t('labels.format.f11')}</option>
-                            </NativeSelect>
-                        </FormField>
-                        <FormField id="match-duration" label={t('matches.duration')} error={err('duration_min')}>
-                            <Input id="match-duration" inputMode="numeric" {...register('duration_min')} />
-                        </FormField>
-                        <FormField id="match-post" label={t('matches.post')} error={err('post_min')}>
-                            <Input id="match-post" inputMode="numeric" {...register('post_min')} />
-                        </FormField>
-                    </div>
-                </>
-            )}
+                            ))}
+                        </NativeSelect>
+                    </FormField>
+                    <FormField id="match-kickoff" label={t('matches.kickoff')} error={err('kickoff_time')}>
+                        {isHome ? (
+                            <QuarterTimeSelect
+                                id="match-kickoff"
+                                from={reference.operating_hours.first_kickoff}
+                                to={reference.operating_hours.last_kickoff}
+                                step={reference.kickoff_step_min}
+                                emptyLabel={t('matches.unscheduled')}
+                                aria-invalid={err('kickoff_time') !== undefined}
+                                aria-describedby={describedBy('match-kickoff', err('kickoff_time'))}
+                                {...register('kickoff_time', {
+                                    // Convocatòria per defecte: una hora abans del partit (si encara no n'hi ha cap).
+                                    onChange: (event: { target: { value: string } }) => {
+                                        const time = event.target.value;
+                                        if (isTime(time) && getValues('call_time') === '') {
+                                            setValue('call_time', fromMinutes(Math.max(0, toMinutes(time) - 60)), { shouldDirty: true });
+                                        }
+                                    },
+                                })}
+                            />
+                        ) : (
+                            <TimeTextInput
+                                id="match-kickoff"
+                                aria-invalid={err('kickoff_time') !== undefined}
+                                aria-describedby={describedBy('match-kickoff', err('kickoff_time'))}
+                                {...register('kickoff_time')}
+                            />
+                        )}
+                    </FormField>
+                    <FormField id="match-call" label={t('matches.call')} error={err('call_time')} help={isHome ? t('matches.callDefault') : undefined}>
+                        <TimeTextInput
+                            id="match-call"
+                            aria-invalid={err('call_time') !== undefined}
+                            aria-describedby={describedBy('match-call', err('call_time'), isHome ? t('matches.callDefault') : undefined)}
+                            {...register('call_time')}
+                        />
+                    </FormField>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-3">
+                    <FormField id="match-format" label={t('matches.format')} error={err('game_format')}>
+                        <NativeSelect id="match-format" {...register('game_format')}>
+                            <option value="">
+                                {t('matches.defaultFormat')} ({t(`labels.format.${team.effective.game_format}`)})
+                            </option>
+                            <option value="f7">{t('labels.format.f7')}</option>
+                            <option value="f11">{t('labels.format.f11')}</option>
+                        </NativeSelect>
+                    </FormField>
+                    <FormField id="match-duration" label={t('matches.duration')} error={err('duration_min')}>
+                        <Input id="match-duration" inputMode="numeric" {...register('duration_min')} />
+                    </FormField>
+                    <FormField id="match-post" label={t('matches.post')} error={err('post_min')}>
+                        <Input id="match-post" inputMode="numeric" {...register('post_min')} />
+                    </FormField>
+                </div>
+            </>
 
             {isHome && (
                 <section className="grid gap-4 rounded-lg border border-primary/20 bg-secondary/40 p-3" aria-labelledby="match-home-title">
@@ -353,6 +368,7 @@ function MatchForm({ team, match, matchday, reference, onDone }: MatchFormProps)
                             {t('matches.homeSection')}
                         </h3>
                         <p className="text-xs text-muted-foreground">{t('matches.homeHelp')}</p>
+                        {preferredHint !== null && <p className="mt-1 text-xs font-medium text-primary">{preferredHint}</p>}
                     </div>
                     <FormField id="match-field" label={t('matches.field')} error={err('field_area_id')}>
                         <NativeSelect id="match-field" aria-invalid={err('field_area_id') !== undefined} {...register('field_area_id')}>
@@ -401,20 +417,18 @@ function MatchForm({ team, match, matchday, reference, onDone }: MatchFormProps)
                 </section>
             )}
 
-            {!isRest && (
-                <>
-                    <FormField id="match-notes" label={t('matches.notes')} error={err('notes')}>
-                        <Textarea id="match-notes" rows={2} {...register('notes')} />
-                    </FormField>
-                    <FormField id="match-whatsapp" label={t('matches.whatsappExtra')} error={err('whatsapp_extra')}>
-                        <Textarea id="match-whatsapp" rows={2} {...register('whatsapp_extra')} />
-                    </FormField>
-                    <label className="flex items-center gap-2 text-sm">
-                        <input type="checkbox" className="size-4 accent-primary" {...register('show_in_image')} />
-                        {t('matches.showInImage')}
-                    </label>
-                </>
-            )}
+            <>
+                <FormField id="match-notes" label={t('matches.notes')} error={err('notes')}>
+                    <Textarea id="match-notes" rows={2} {...register('notes')} />
+                </FormField>
+                <FormField id="match-whatsapp" label={t('matches.whatsappExtra')} error={err('whatsapp_extra')}>
+                    <Textarea id="match-whatsapp" rows={2} {...register('whatsapp_extra')} />
+                </FormField>
+                <label className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" className="size-4 accent-primary" {...register('show_in_image')} />
+                    {t('matches.showInImage')}
+                </label>
+            </>
 
             <SheetFooter className="flex-row flex-wrap justify-between gap-2 px-0">
                 {match !== null ? (

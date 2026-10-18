@@ -67,7 +67,7 @@ class SeasonMatchdayApiTest extends TestCase
     {
         $matchday = $this->weekend();
         $this->actingAs($this->manager(), 'web')->spa()->postJson("/api/matchdays/{$matchday->id}/matches", [
-            'team_id' => $this->team('alevi-a')->id, 'status' => 'pending', 'home_away' => 'home',
+            'team_id' => $this->team('alevi-a')->id, 'status' => 'confirmed', 'home_away' => 'home',
         ])->assertCreated();
 
         $this->spa()->deleteJson("/api/matchdays/{$matchday->id}")

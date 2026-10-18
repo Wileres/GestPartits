@@ -31,6 +31,8 @@ function AppearanceForm({ settings }: { settings: BrandingSettings }) {
     const [values, setValues] = useState({ club_name: settings.club_name, primary_color: settings.primary_color, primary_dark_color: settings.primary_dark_color });
     const onSaved = (data: BrandingSettings) => {
         queryClient.setQueryData(['settings'], data);
+        // L'escut surt a tota l'aplicació i a la pantalla d'accés.
+        void queryClient.invalidateQueries({ queryKey: ['public-branding'] });
         toast.success(t('appearance.saved'));
     };
     const save = useMutation({ mutationFn: () => settingsApi.update(values), onSuccess: onSaved });

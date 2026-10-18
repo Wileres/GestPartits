@@ -27,7 +27,6 @@ export interface MatchInput {
 
 export interface QuickEntryRow {
     team_id: number;
-    status: MatchStatus;
     home_away: HomeAway | null;
     opponent: string | null;
     round_label: string | null;

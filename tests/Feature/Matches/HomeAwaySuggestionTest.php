@@ -51,10 +51,10 @@ class HomeAwaySuggestionTest extends TestCase
         $this->assertNull($suggestions[$this->team('juvenil-a')->id]['suggestion']);
     }
 
-    public function test_ignores_rest_and_postponed_weekends(): void
+    public function test_ignores_cancelled_matches(): void
     {
         $this->played($this->weekend('2026-10-03'), 'alevi-a', HomeAway::Home);
-        $this->played($this->weekend('2026-10-10'), 'alevi-a', HomeAway::Away, MatchStatus::Postponed);
+        $this->played($this->weekend('2026-10-10'), 'alevi-a', HomeAway::Away, MatchStatus::Cancelled);
 
         $suggestions = $this->suggestions($this->weekend('2026-10-17'));
 

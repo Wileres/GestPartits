@@ -48,7 +48,7 @@ class ScheduleApiTest extends TestCase
             $team = $this->team($slug);
             $matches[$slug] = GameMatch::query()->create([
                 'matchday_id' => $this->matchday->id, 'team_id' => $team->id, 'opponent' => 'Rival '.$team->name,
-                'home_away' => HomeAway::Home, 'status' => MatchStatus::Pending, 'game_format' => $team->effectiveGameFormat(),
+                'home_away' => HomeAway::Home, 'status' => MatchStatus::Confirmed, 'game_format' => $team->effectiveGameFormat(),
                 'duration_min' => $team->effectiveDurationMin(), 'post_min' => $team->effectivePostMin(),
             ]);
         }
@@ -112,8 +112,11 @@ class ScheduleApiTest extends TestCase
             ->assertJsonPath('data.versions.1.is_current', true);
 
         $this->assertSame(10, count($response->json('data.proposal.changes')));
-        $this->assertSame('proposed', $m['alevi-a']->fresh()->status->value);
+        // Els partits segueixen «confirmats»: la proposta només en canvia l'horari.
+        $this->assertSame('confirmed', $m['alevi-a']->fresh()->status->value);
         $this->assertSame('auto', $m['alevi-a']->fresh()->placement_source);
+        // Convocatòria per defecte: una hora abans del partit.
+        $this->assertSame('10:15:00', $m['alevi-a']->fresh()->call_time);
         $this->assertDatabaseHas('audit_logs', ['event' => 'schedule.proposed']);
     }
 
@@ -152,7 +155,7 @@ class ScheduleApiTest extends TestCase
         $version = $this->schedule()->json('data.version');
 
         $this->spa()->putJson("/api/matches/{$m['alevi-a']->id}", [
-            'team_id' => $m['alevi-a']->team_id, 'status' => 'pending', 'home_away' => 'home', 'opponent' => 'Canvi', 'lock_version' => 0,
+            'team_id' => $m['alevi-a']->team_id, 'status' => 'confirmed', 'home_away' => 'home', 'opponent' => 'Canvi', 'lock_version' => 0,
         ])->assertOk();
 
         $this->assertGreaterThan($version, $this->schedule()->json('data.version'));
@@ -276,7 +279,6 @@ class ScheduleApiTest extends TestCase
             ->assertJsonPath('message', 'No es pot confirmar la programació mentre hi hagi conflictes crítics.')
             ->assertJsonPath('conflicts.0.code', 'F11_OVERLAPS_F7');
 
-        $this->assertSame('pending', $m['alevi-a']->fresh()->status->value);
         $this->assertNotSame('confirmed', Schedule::query()->first()->status->value);
     }
 
@@ -295,8 +297,10 @@ class ScheduleApiTest extends TestCase
     {
         Event::fake([ScheduleConfirmed::class]);
         $m = $this->homeMatches('primer-equip', 'alevi-a');
+        $m['alevi-a']->update(['status' => MatchStatus::Proposed]);
         $proposed = $this->propose();
         $id = $proposed->json('data.id');
+        $this->assertSame('proposed', $m['alevi-a']->fresh()->status->value);
 
         $confirmed = $this->spa()->postJson("/api/schedules/{$id}/confirm", ['version' => $proposed->json('data.version')])
             ->assertOk()

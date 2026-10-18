@@ -19,7 +19,7 @@ class RouteProtectionTest extends TestCase
     use RefreshDatabase, SeedsClub;
 
     /** Rutes públiques: inici de sessió i recuperació de contrasenya. */
-    private const PUBLIC = ['auth.login', 'auth.password.forgot', 'auth.password.reset'];
+    private const PUBLIC = ['auth.login', 'auth.password.forgot', 'auth.password.reset', 'public.branding', 'public.logo'];
 
     /** Rutes que només pot fer servir l'administrador. */
     private const ADMIN_ONLY = [

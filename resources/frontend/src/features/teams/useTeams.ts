@@ -52,19 +52,3 @@ export function useReorderTeams() {
         onSettled: () => queryClient.invalidateQueries({ queryKey: teamsKey }),
     });
 }
-
-export function useTeamLogo() {
-    const queryClient = useQueryClient();
-
-    const upload = useMutation({
-        mutationFn: ({ id, file }: { id: number; file: File }) => teamsApi.uploadLogo(id, file),
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: teamsKey }),
-    });
-
-    const remove = useMutation({
-        mutationFn: (id: number) => teamsApi.deleteLogo(id),
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: teamsKey }),
-    });
-
-    return { upload, remove };
-}
