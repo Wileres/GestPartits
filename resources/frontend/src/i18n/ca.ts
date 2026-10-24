@@ -289,7 +289,7 @@ export const ca = {
         MANDATORY_RULE_BROKEN: 'Regla obligatòria incomplerta',
         RECOMMENDED_RULE_NOT_MET: 'No es respecta l’horari preferent',
         HOME_MATCH_UNSCHEDULED: 'Partit a casa sense horari',
-        AWAY_MISSING_DATA: 'Falten dades del partit a fora',
+        AWAY_MISSING_DATA: 'Falta el dia o l\'hora del partit a fora',
     },
     users: {
         title: 'Usuaris',

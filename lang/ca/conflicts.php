@@ -21,7 +21,7 @@ return [
     'MANDATORY_RULE_BROKEN' => ':teams: regla obligatòria incomplerta (:rule).',
     'RECOMMENDED_RULE_NOT_MET' => ':teams: no s\'ha pogut respectar l\'horari preferent (:rule).',
     'HOME_MATCH_UNSCHEDULED' => ':teams: partit a casa sense horari.',
-    'AWAY_MISSING_DATA' => ':teams: falten dades del partit a fora (data, hora o instal·lació).',
+    'AWAY_MISSING_DATA' => ':teams: falten dades del partit a fora (data o hora).',
 
     'override' => 'Excepció acceptada: :reason',
     'not_before' => 'no abans de :time',

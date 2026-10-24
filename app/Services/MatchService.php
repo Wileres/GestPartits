@@ -18,7 +18,7 @@ use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 /**
  * Alta i modificació de partits amb valors per defecte de l'equip i normalització segons
  * la condició (casa / fora). Un partit nou es desa com a «Confirmat»; si és a casa i no s'indica horari,
- * es carrega l'horari preferent de l'equip i la convocatòria és una hora abans del partit.
+ * es carrega l'horari preferent de l'equip i la convocatòria és una hora abans del partit (a casa i a fora).
  * Les modificacions usen bloqueig optimista.
  */
 class MatchService
@@ -52,7 +52,7 @@ class MatchService
 
             $this->apply($match, $team, $data);
             $this->applyPreferredSchedule($match, $team, $matchday, $data);
-            $match->call_time = $match->home_away === HomeAway::Home ? CallTime::follow($match->call_time, null, $match->kickoff_time) : $match->call_time;
+            $match->call_time = CallTime::follow($match->call_time, null, $match->kickoff_time);
             $match->save();
             $this->schedules->markChanged($matchday);
 
@@ -77,11 +77,12 @@ class MatchService
             $team = Team::query()->with('category')->findOrFail($data['team_id']);
             unset($data['lock_version']);
 
-            $hadKickoff = $match->kickoff_time !== null;
+            $oldKickoff = $match->kickoff_time;
             $this->apply($match, $team, $data);
-            // Un partit a casa que acaba de rebre hora de partit proposa la convocatòria per defecte.
-            if (! $hadKickoff && $match->home_away === HomeAway::Home) {
-                $match->call_time = CallTime::follow($match->call_time, null, $match->kickoff_time);
+            // La convocatòria per defecte (una hora abans) es proposa quan el partit rep hora i segueix els canvis d'hora;
+            // si el gestor l'ha buidada o n'ha posat una de pròpia, es respecta.
+            if ($oldKickoff === null || $match->call_time !== null) {
+                $match->call_time = CallTime::follow($match->call_time, $oldKickoff, $match->kickoff_time);
             }
             $match->lock_version++;
             $match->save();

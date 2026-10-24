@@ -31,7 +31,7 @@
 
   | Proveedor | Destinos | Notas |
   |---|---|---|
-  | `manual` (siempre activo, vía A) | grupos, canal, listas, teléfonos | Copiar, abrir WhatsApp (`wa.me/?text=`; los canales se abren con el enlace de invitación) y «Marca com a enviat» |
+  | `manual` (siempre activo, vía A) | grupos, canal, listas, teléfonos | Copiar, abrir WhatsApp (`api.whatsapp.com/send?text=`; los canales se abren con el enlace de invitación) y «Marca com a enviat» |
   | `gateway` (vía B, `WHATSAPP_GATEWAY_ENABLED`) | grupos `…@g.us`, canales `…@newsletter`, teléfonos | Pasarela HTTP genérica con un número dedicado. **Incumple los términos de WhatsApp**: hay riesgo de bloqueo del número |
   | `meta` (`WHATSAPP_META_ENABLED`) | teléfonos | Cloud API con una plantilla aprobada (`provider_template_name`) |
   | `twilio` (`WHATSAPP_TWILIO_ENABLED`) | teléfonos | |

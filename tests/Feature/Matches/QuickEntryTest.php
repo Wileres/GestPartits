@@ -50,4 +50,33 @@ class QuickEntryTest extends TestCase
         // Tot o res: Escoleta B tampoc no s'ha creat.
         $this->assertSame(1, GameMatch::query()->where('matchday_id', $matchday->id)->count());
     }
+
+    public function test_away_rows_take_a_free_day_and_time_and_get_the_default_call_time(): void
+    {
+        $matchday = $this->weekend();
+
+        $this->spa()->postJson("/api/matchdays/{$matchday->id}/matches/bulk", ['rows' => [
+            ['team_id' => $this->team('cadet-a')->id, 'home_away' => 'away', 'opponent' => 'UE Figueres', 'match_date' => '2026-10-18', 'kickoff_time' => '10:10'],
+        ]])->assertOk()
+            ->assertJsonPath('data.0.match_date', '2026-10-18')
+            ->assertJsonPath('data.0.kickoff_time', '10:10')
+            ->assertJsonPath('data.0.call_time', '09:10')
+            ->assertJsonPath('data.0.field_area_id', null);
+    }
+
+    public function test_home_rows_cannot_carry_a_day_or_time_and_dates_must_be_in_the_matchday(): void
+    {
+        $matchday = $this->weekend();
+
+        $errors = $this->spa()->postJson("/api/matchdays/{$matchday->id}/matches/bulk", ['rows' => [
+            ['team_id' => $this->team('escoleta-a')->id, 'home_away' => 'home', 'match_date' => '2026-10-17', 'kickoff_time' => '11:00'],
+            ['team_id' => $this->team('cadet-a')->id, 'home_away' => 'away', 'match_date' => '2026-10-30', 'kickoff_time' => '11:00'],
+            ['team_id' => $this->team('juvenil-a')->id, 'home_away' => 'away', 'kickoff_time' => '11:00'],
+        ]])->assertUnprocessable()->json('errors');
+
+        $this->assertArrayHasKey('rows.0.match_date', $errors);
+        $this->assertSame(['La data ha de ser dins de la jornada.'], $errors['rows.1.match_date']);
+        $this->assertSame(["Cal indicar la data si s'indica l'hora."], $errors['rows.2.match_date']);
+        $this->assertSame(0, GameMatch::query()->where('matchday_id', $matchday->id)->count());
+    }
 }

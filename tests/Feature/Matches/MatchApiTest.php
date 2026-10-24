@@ -209,4 +209,20 @@ class MatchApiTest extends TestCase
 
         $this->assertDatabaseHas('audit_logs', ['event' => 'match.created', 'auditable_id' => $id, 'user_id' => $this->user->id]);
     }
+
+    public function test_call_time_defaults_to_one_hour_before_kickoff_for_away_matches_and_follows_changes(): void
+    {
+        $team = $this->team('cadet-a');
+        $base = ['team_id' => $team->id, 'home_away' => 'away', 'match_date' => '2026-10-18'];
+
+        $id = $this->create([...$base, 'kickoff_time' => '12:00'])->assertCreated()->assertJsonPath('data.call_time', '11:00')->json('data.id');
+
+        // Mentre la convocatòria sigui la per defecte, segueix l'hora del partit.
+        $this->spa()->putJson("/api/matches/{$id}", [...$base, 'kickoff_time' => '12:30', 'call_time' => '11:00', 'lock_version' => 0])
+            ->assertOk()->assertJsonPath('data.call_time', '11:30');
+
+        // Una convocatòria posada a mà es respecta.
+        $this->spa()->putJson("/api/matches/{$id}", [...$base, 'kickoff_time' => '13:00', 'call_time' => '11:45', 'lock_version' => 1])
+            ->assertOk()->assertJsonPath('data.call_time', '11:45');
+    }
 }

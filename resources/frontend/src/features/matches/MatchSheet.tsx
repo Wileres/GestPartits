@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { z } from 'zod';
 import { ApiError } from '@/api/client';
 import type { MatchInput } from '@/api/matches';
-import type { FieldArea, GameFormat, Match, Matchday, ReferenceData, Team } from '@/api/types';
+import type { FieldArea, GameFormat, HomeAway, Match, Matchday, ReferenceData, Team } from '@/api/types';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { FormField } from '@/components/FormField';
 import { NativeSelect } from '@/components/NativeSelect';
@@ -18,7 +18,7 @@ import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetT
 import { Textarea } from '@/components/ui/textarea';
 import { t } from '@/i18n/ca';
 import { describedBy } from '@/lib/a11y';
-import { addDays, formatWeekdayDate } from '@/lib/dates';
+import { formatWeekdayDate, matchdayDates } from '@/lib/dates';
 import { emptyToNull, errorMessage, numberOrNull } from '@/lib/errors';
 import { applyServerErrors } from '@/lib/forms';
 import { describePreference } from '@/lib/rules';
@@ -90,6 +90,8 @@ const fields = [
 export interface MatchSheetTarget {
     team: Team;
     match: Match | null;
+    /** Condició suggerida per a un partit nou (el contrari de l'últim partit de l'equip). */
+    suggestedHomeAway?: HomeAway | null;
 }
 
 interface MatchSheetProps {
@@ -119,15 +121,6 @@ export function MatchSheet({ target, matchday, reference, onClose }: MatchSheetP
     );
 }
 
-function matchdayDates(matchday: Matchday): string[] {
-    const dates: string[] = [];
-    for (let date = matchday.starts_on; date <= matchday.ends_on; date = addDays(date, 1)) {
-        dates.push(date);
-    }
-
-    return dates;
-}
-
 function areasFor(format: GameFormat, areas: FieldArea[]): FieldArea[] {
     return format === 'f11' ? areas.filter((a) => a.kind === 'full') : areas;
 }
@@ -138,7 +131,7 @@ interface MatchFormProps extends MatchSheetTarget {
     onDone: () => void;
 }
 
-function MatchForm({ team, match, matchday, reference, onDone }: MatchFormProps) {
+function MatchForm({ team, match, suggestedHomeAway = null, matchday, reference, onDone }: MatchFormProps) {
     const save = useSaveMatch(matchday.id);
     const remove = useDeleteMatch(matchday.id);
     const [formError, setFormError] = useState<string | null>(null);
@@ -156,7 +149,7 @@ function MatchForm({ team, match, matchday, reference, onDone }: MatchFormProps)
         resolver: zodResolver(buildSchema(reference)),
         defaultValues: {
             status: match?.status ?? 'confirmed',
-            home_away: match?.home_away ?? '',
+            home_away: match?.home_away ?? suggestedHomeAway ?? '',
             opponent: match?.opponent ?? '',
             round_label: match?.round_label ?? '',
             game_format: match?.game_format ?? '',
@@ -192,6 +185,18 @@ function MatchForm({ team, match, matchday, reference, onDone }: MatchFormProps)
             ? t('matches.preferredLoaded', { value: describePreference(preference, reference.field_areas) })
             : null;
     const occupationEnd = isHome && isTime(kickoff) && Number.isFinite(duration + post) ? fromMinutes(toMinutes(kickoff) + duration + post) : null;
+
+    // Convocatòria per defecte (una hora abans del partit, a casa i a fora): es proposa quan no n'hi ha cap
+    // i segueix els canvis d'hora mentre sigui la per defecte; una convocatòria posada a mà es respecta.
+    const followCall = (event: { target: { value: string } }) => {
+        const time = event.target.value;
+        if (!isTime(time)) return;
+        const call = getValues('call_time');
+        const previousDefault = isTime(kickoff) ? fromMinutes(Math.max(0, toMinutes(kickoff) - 60)) : null;
+        if (call === '' || call === previousDefault) {
+            setValue('call_time', fromMinutes(Math.max(0, toMinutes(time) - 60)), { shouldDirty: true });
+        }
+    };
 
     const onSubmit = handleSubmit((values) => {
         setFormError(null);
@@ -312,22 +317,14 @@ function MatchForm({ team, match, matchday, reference, onDone }: MatchFormProps)
                                 emptyLabel={t('matches.unscheduled')}
                                 aria-invalid={err('kickoff_time') !== undefined}
                                 aria-describedby={describedBy('match-kickoff', err('kickoff_time'))}
-                                {...register('kickoff_time', {
-                                    // Convocatòria per defecte: una hora abans del partit (si encara no n'hi ha cap).
-                                    onChange: (event: { target: { value: string } }) => {
-                                        const time = event.target.value;
-                                        if (isTime(time) && getValues('call_time') === '') {
-                                            setValue('call_time', fromMinutes(Math.max(0, toMinutes(time) - 60)), { shouldDirty: true });
-                                        }
-                                    },
-                                })}
+                                {...register('kickoff_time', { onChange: followCall })}
                             />
                         ) : (
                             <TimeTextInput
                                 id="match-kickoff"
                                 aria-invalid={err('kickoff_time') !== undefined}
                                 aria-describedby={describedBy('match-kickoff', err('kickoff_time'))}
-                                {...register('kickoff_time')}
+                                {...register('kickoff_time', { onChange: followCall })}
                             />
                         )}
                     </FormField>

@@ -65,3 +65,10 @@ Formato: `D-NNN · fecha · estado` (Propuesta / Aceptada / Sustituida). Detalle
 | D-059 | 2026-10-18 | Aceptada | Un partido en casa nuevo sin hora carga el horario preferente efectivo (equipo > categoría > modalidad), sin bloquearlo | Petición del club; la propuesta lo puede recolocar |
 | D-060 | 2026-10-18 | Aceptada | Convocatoria por defecto = hora del partido − 60 min (`CallTime`); una convocatoria por defecto sigue al partido cuando se mueve, una propia se respeta | Petición del club |
 | D-061 | 2026-10-18 | Aceptada | Escudo único del club: se elimina el escudo por equipo; el escudo se sirve públicamente (`/api/public/logo`) para el login | Petición del club; el escudo no es información sensible |
+| D-062 | 2026-10-25 | Aceptada | La convocatòria per defecte (una hora abans) s'aplica a tots els partits amb hora, també a fora, i segueix els canvis d'hora mentre sigui la per defecte | Menys feina manual; una convocatòria posada a mà es respecta |
+| D-063 | 2026-10-25 | Aceptada | El full ràpid permet indicar dia i hora d'un partit a fora (hora lliure, validada); els partits a casa no en porten i carreguen l'horari preferent | Evita obrir la fitxa del partit només per posar-hi l'horari |
+| D-064 | 2026-10-25 | Aceptada | Un partit nou des de la fitxa carrega la condició suggerida (contrari de l'últim partit de l'equip) | Mateix criteri que el full ràpid |
+| D-065 | 2026-10-25 | Aceptada | L'avís «Falten dades del partit a fora» només es mostra si falta el dia o l'hora; la instal·lació ja no s'exigeix | La instal·lació és informativa |
+| D-066 | 2026-10-25 | Aceptada | Peu de les imatges: `@olotjspm` a l'esquerra i `#futboldebarri` a la dreta (Chromium i GD) | Identitat del club a les xarxes |
+| D-067 | 2026-10-25 | Propuesta | L'enllaç manual de WhatsApp usa `api.whatsapp.com/send?text=` en comptes de `wa.me` | Mitigació dels emojis perduts (�); si persisteix, cal copiar el missatge |
+

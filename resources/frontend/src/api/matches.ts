@@ -30,6 +30,9 @@ export interface QuickEntryRow {
     home_away: HomeAway | null;
     opponent: string | null;
     round_label: string | null;
+    /** Només partits a fora: dia i hora lliure. */
+    match_date?: string | null;
+    kickoff_time?: string | null;
 }
 
 export const matchesApi = {

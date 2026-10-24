@@ -19,6 +19,11 @@ final class LayoutPlanner
 
     public const FOOTER = 150;
 
+    /** Peu de la imatge: compte del club (esquerra) i etiqueta (dreta). */
+    public const FOOTER_LEFT = '@olotjspm';
+
+    public const FOOTER_RIGHT = '#futboldebarri';
+
     public const NORMAL_ROW = 150;
 
     public const COMPACT_ROW = 118;

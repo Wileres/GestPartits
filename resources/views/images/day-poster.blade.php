@@ -95,10 +95,11 @@
     @endforeach
 </main>
 <footer>
-    <span>Som-hi, Joventut!</span>
+    <span>{{ \App\Domain\Imaging\LayoutPlanner::FOOTER_LEFT }}</span>
     @if ($page->totalPages > 1)
         <span class="page">{{ $page->page }}/{{ $page->totalPages }}</span>
     @endif
+    <span>{{ \App\Domain\Imaging\LayoutPlanner::FOOTER_RIGHT }}</span>
 </footer>
 </body>
 </html>

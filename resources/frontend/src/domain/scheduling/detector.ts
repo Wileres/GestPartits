@@ -208,7 +208,7 @@ function matchChecks(active: InputMatch[], forConfirmation: boolean): Conflict[]
     for (const m of active) {
         if (m.kickoff !== null && m.call !== null && minutes(m.call) > minutes(m.kickoff)) result.push(conflict('CALL_AFTER_KICKOFF', 'critical', [m.id]));
         if (m.home_away === 'home' && !isPlaced(m)) result.push(conflict('HOME_MATCH_UNSCHEDULED', forConfirmation ? 'critical' : 'warning', [m.id]));
-        if (m.home_away === 'away' && (m.date === null || m.kickoff === null || m.venue === null || m.venue === '')) {
+        if (m.home_away === 'away' && (m.date === null || m.kickoff === null)) {
             result.push(conflict('AWAY_MISSING_DATA', 'warning', [m.id]));
         }
     }

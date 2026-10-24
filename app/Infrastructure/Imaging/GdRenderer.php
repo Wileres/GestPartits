@@ -77,9 +77,12 @@ class GdRenderer implements ScheduleImageRenderer
             $y += $rowHeight + LayoutPlanner::ROW_GAP;
         }
 
-        imagettftext($image, 26, 0, 72, LayoutPlanner::HEIGHT - 60, $white, $this->boldFont, 'Som-hi, Joventut!');
+        imagettftext($image, 30, 0, 72, LayoutPlanner::HEIGHT - 60, $white, $this->boldFont, LayoutPlanner::FOOTER_LEFT);
+        $box = imagettfbbox(30, 0, $this->boldFont, LayoutPlanner::FOOTER_RIGHT);
+        $rightWidth = $box === false ? 300 : abs($box[2] - $box[0]);
+        imagettftext($image, 30, 0, LayoutPlanner::WIDTH - 72 - $rightWidth, LayoutPlanner::HEIGHT - 60, $white, $this->boldFont, LayoutPlanner::FOOTER_RIGHT);
         if ($page->totalPages > 1) {
-            imagettftext($image, 22, 0, LayoutPlanner::WIDTH - 150, LayoutPlanner::HEIGHT - 60, $white, $this->regularFont, $page->page.'/'.$page->totalPages);
+            imagettftext($image, 22, 0, (int) (LayoutPlanner::WIDTH / 2) - 30, LayoutPlanner::HEIGHT - 60, $white, $this->regularFont, $page->page.'/'.$page->totalPages);
         }
 
         unset($dark);

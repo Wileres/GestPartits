@@ -222,8 +222,10 @@ class NotificationService
     }
 
     /**
-     * Enllaç per publicar manualment: wa.me amb el text (grups i llistes: WhatsApp deixa triar el xat),
-     * wa.me/{telèfon} per a números i l'enllaç d'invitació per als canals (no admeten text predefinit).
+     * Enllaç per publicar manualment: api.whatsapp.com/send amb el text (grups i llistes: WhatsApp deixa triar el xat),
+     * amb el telèfon per a números i l'enllaç d'invitació per als canals (no admeten text predefinit).
+     * Es fa servir directament api.whatsapp.com (i no wa.me) perquè wa.me hi redirigeix i en alguns navegadors
+     * l'emoji es perd en la redirecció.
      */
     public function shareUrl(WhatsAppMessage $message): ?string
     {
@@ -232,8 +234,8 @@ class NotificationService
 
         return match ($destination->destination_type->value) {
             'channel' => $destination->invite_url,
-            'phone' => $destination->external_id === null ? null : 'https://wa.me/'.preg_replace('/\D/', '', $destination->external_id)."?text={$text}",
-            default => "https://wa.me/?text={$text}",
+            'phone' => $destination->external_id === null ? null : 'https://api.whatsapp.com/send?phone='.preg_replace('/\D/', '', $destination->external_id)."&text={$text}",
+            default => "https://api.whatsapp.com/send?text={$text}",
         };
     }
 

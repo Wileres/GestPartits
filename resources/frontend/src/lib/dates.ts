@@ -71,3 +71,13 @@ export function maskDisplayDate(value: string): string {
 
     return parts.join('/');
 }
+
+/** Tots els dies d'una jornada (de l'inici al final, ambdós inclosos). */
+export function matchdayDates(matchday: { starts_on: string; ends_on: string }): string[] {
+    const dates: string[] = [];
+    for (let date = matchday.starts_on; date <= matchday.ends_on; date = addDays(date, 1)) {
+        dates.push(date);
+    }
+
+    return dates;
+}

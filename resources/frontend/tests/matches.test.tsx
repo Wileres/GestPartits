@@ -25,6 +25,10 @@ describe('full ràpid de partits', () => {
         await user.type(screen.getByLabelText('Rival · Aleví A'), 'CF Olot');
         await user.selectOptions(screen.getByLabelText('Condició · Primer equip'), 'away');
         await user.type(screen.getByLabelText('Rival · Primer equip'), 'UE Llagostera');
+        // Un partit a fora porta el dia i l'hora directament a la fila; el de casa no en porta.
+        expect(screen.queryByLabelText('Hora del partit · Aleví A')).not.toBeInTheDocument();
+        await user.selectOptions(screen.getByLabelText('Data · Primer equip'), '2026-10-18');
+        await user.type(screen.getByLabelText('Hora del partit · Primer equip'), '10:10');
 
         await user.click(screen.getByRole('button', { name: 'Crea els partits (2)' }));
 
@@ -32,9 +36,29 @@ describe('full ràpid de partits', () => {
         const body = JSON.parse(String(calls.find((c) => c.url === '/api/matchdays/7/matches/bulk')?.init.body)) as { rows: unknown[] };
         // Els partits nous no porten estat: el servidor els desa com a confirmats.
         expect(body.rows).toEqual([
-            { team_id: 1, home_away: 'home', opponent: 'CF Olot', round_label: null },
-            { team_id: 2, home_away: 'away', opponent: 'UE Llagostera', round_label: null },
+            { team_id: 1, home_away: 'home', opponent: 'CF Olot', round_label: null, match_date: null, kickoff_time: null },
+            { team_id: 2, home_away: 'away', opponent: 'UE Llagostera', round_label: null, match_date: '2026-10-18', kickoff_time: '10:10' },
         ]);
+    });
+
+    it('no deixa crear un partit a fora amb una hora invàlida o sense dia', async () => {
+        mockFetch(weekendServer(adminMe));
+
+        renderApp('/partits');
+
+        const user = userEvent.setup();
+        await user.selectOptions(await screen.findByLabelText('Condició · Primer equip'), 'away');
+        const create = screen.getByRole('button', { name: /Crea els partits/ });
+        await user.type(screen.getByLabelText('Hora del partit · Primer equip'), '25:99');
+        expect(create).toBeDisabled();
+
+        await user.clear(screen.getByLabelText('Hora del partit · Primer equip'));
+        await user.type(screen.getByLabelText('Hora del partit · Primer equip'), '10:10');
+        // Falta el dia.
+        expect(create).toBeDisabled();
+
+        await user.selectOptions(screen.getByLabelText('Data · Primer equip'), '2026-10-17');
+        expect(create).toBeEnabled();
     });
 
     it('ja no ofereix «Descansa»', async () => {

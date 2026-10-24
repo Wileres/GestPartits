@@ -76,7 +76,7 @@ class WhatsAppNotificationTest extends TestCase
         $this->assertStringContainsString('🕐 Convocatòria: 10:30', $alevi['body']);
         $this->assertStringContainsString('📍 Camp del Joventut Sant Pere Màrtir', $alevi['body']);
         $this->assertTrue($alevi['is_manual']);
-        $this->assertStringStartsWith('https://wa.me/?text=', $alevi['share_url']);
+        $this->assertStringStartsWith('https://api.whatsapp.com/send?text=', $alevi['share_url']);
 
         $cadet = $messages->firstWhere('team', 'Cadet A');
         $this->assertStringContainsString('🚌 UE Figueres - Cadet A', $cadet['body']);

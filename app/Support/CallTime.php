@@ -3,7 +3,7 @@
 namespace App\Support;
 
 /**
- * Hora de convocatòria per defecte dels partits a casa: una hora abans del partit.
+ * Hora de convocatòria per defecte (partits a casa i a fora): una hora abans del partit.
  */
 final class CallTime
 {
@@ -22,7 +22,7 @@ final class CallTime
     }
 
     /**
-     * Convocatòria d'un partit a casa quan canvia l'hora d'inici:
+     * Convocatòria d'un partit quan canvia l'hora d'inici:
      *  - sense convocatòria, es proposa la per defecte;
      *  - si era la per defecte de l'hora anterior, la segueix;
      *  - si el gestor n'ha posat una de pròpia, es respecta.

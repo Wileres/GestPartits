@@ -13,7 +13,7 @@ const base = {
     status: 'draft', status_label: 'Esborrany', attempts: 0, error_message: null, queued_at: null, sent_at: null, attachments: [],
     can_edit: true, can_send: false, can_mark_sent: true, can_discard: true,
 };
-const manual = { ...base, id: 11, team: 'Aleví A', destination: { id: 1, label: 'Famílies Aleví A', type: 'group', type_label: 'Grup', team: 'Aleví A' }, body: '🏠 Aleví A - CF Olot', share_url: 'https://wa.me/?text=%F0%9F%8F%A0' };
+const manual = { ...base, id: 11, team: 'Aleví A', destination: { id: 1, label: 'Famílies Aleví A', type: 'group', type_label: 'Grup', team: 'Aleví A' }, body: '🏠 Aleví A - CF Olot', share_url: 'https://api.whatsapp.com/send?text=%F0%9F%8F%A0' };
 const automatic = { ...base, id: 12, team: 'Cadet A', destination: { id: 2, label: 'Delegat Cadet', type: 'phone', type_label: 'Telèfon', team: 'Cadet A' }, provider: 'log', provider_label: 'Simulació', is_manual: false, body: '🚌 UE Figueres - Cadet A', share_url: null, can_send: true, can_mark_sent: false };
 
 function server(extra: FetchHandler = () => ({ status: 404 })): FetchHandler {

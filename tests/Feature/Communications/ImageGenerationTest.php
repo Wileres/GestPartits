@@ -137,6 +137,20 @@ class ImageGenerationTest extends TestCase
         $this->getJson("/api/generated-images/{$image->id}")->assertUnauthorized();
     }
 
+    public function test_poster_footer_shows_the_club_account_and_hashtag(): void
+    {
+        $matchday = $this->weekend();
+        $this->matchesFor($matchday);
+        $schedule = $this->confirmed($matchday);
+        $poster = app(ImageService::class)->posters($schedule->load('matchday'))[0];
+        $page = (new LayoutPlanner)->plan($poster)->pages[0];
+
+        $html = (new ChromiumRenderer(app('view'), '/usr/bin/chromium'))->html($page, app(ClubBranding::class)->forImages());
+
+        $this->assertMatchesRegularExpression('/<footer>\s*<span>@olotjspm<\/span>.*<span>#futboldebarri<\/span>\s*<\/footer>/s', $html);
+        $this->assertStringNotContainsString('Som-hi, Joventut!', $html);
+    }
+
     #[Group('chromium')]
     public function test_chromium_renders_a_real_1080x1920_image(): void
     {

@@ -256,7 +256,7 @@ final class ConflictDetector
                 $conflicts[] = new Conflict(ConflictCode::HomeMatchUnscheduled, $forConfirmation ? Severity::Critical : Severity::Warning, [$m->id]);
             }
 
-            if ($m->homeAway === 'away' && ($m->date === null || $m->kickoff === null || $m->venue === null || $m->venue === '')) {
+            if ($m->homeAway === 'away' && ($m->date === null || $m->kickoff === null)) {
                 $conflicts[] = new Conflict(ConflictCode::AwayMissingData, Severity::Warning, [$m->id]);
             }
         }

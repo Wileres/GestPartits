@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { TimeTextInput } from '@/components/TimeFields';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useTeams } from '@/features/teams/useTeams';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
@@ -19,7 +20,9 @@ import { useReferenceData } from '@/hooks/useReferenceData';
 import { cn } from '@/lib/utils';
 import { useMatchdaySelection } from '@/hooks/useMatchdaySelection';
 import { ca, t } from '@/i18n/ca';
+import { formatWeekdayDate, matchdayDates } from '@/lib/dates';
 import { emptyToNull, errorMessage } from '@/lib/errors';
+import { isTime } from '@/lib/time';
 import { MatchSheet, type MatchSheetTarget } from './MatchSheet';
 import { useCreateMatches, useHomeAwaySuggestions, useMatches } from './useMatches';
 
@@ -55,7 +58,15 @@ const HOME_CARD = 'border-primary/25 bg-primary/[0.05]';
 interface Draft {
     choice: Choice;
     opponent: string;
+    /** Dia i hora d'un partit a fora (els partits a casa carreguen l'horari preferent de l'equip). */
+    date: string;
+    time: string;
 }
+
+const emptyDraft = (choice: Choice): Draft => ({ choice, opponent: '', date: '', time: '' });
+
+/** L'hora d'un partit a fora ha de ser vàlida i anar acompanyada del dia. */
+const isDraftInvalid = (draft: Draft): boolean => draft.choice === 'away' && draft.time !== '' && (!isTime(draft.time) || draft.date === '');
 
 function MatchdayMatches({ matchday, reference }: { matchday: Matchday; reference: ReferenceData }) {
     const teams = useTeams();
@@ -80,7 +91,7 @@ function MatchdayMatches({ matchday, reference }: { matchday: Matchday; referenc
     const draftFor = (team: Team): Draft => {
         const suggestion = suggestions.data?.[String(team.id)]?.suggestion ?? null;
 
-        return drafts[team.id] ?? { choice: suggestion ?? '', opponent: '' };
+        return drafts[team.id] ?? emptyDraft(suggestion ?? '');
     };
 
     const pendingRows: QuickEntryRow[] = rows
@@ -93,8 +104,11 @@ function MatchdayMatches({ matchday, reference }: { matchday: Matchday; referenc
                 home_away: draft.choice === '' ? null : draft.choice,
                 opponent: emptyToNull(draft.opponent),
                 round_label: null,
+                match_date: draft.choice === 'away' ? emptyToNull(draft.date) : null,
+                kickoff_time: draft.choice === 'away' ? emptyToNull(draft.time) : null,
             };
         });
+    const hasInvalidDraft = rows.some((team) => !matchesByTeam.has(team.id) && isDraftInvalid(draftFor(team)));
 
     const update = (team: Team, patch: Partial<Draft>) => setDrafts((current) => ({ ...current, [team.id]: { ...draftFor(team), ...patch } }));
 
@@ -117,9 +131,10 @@ function MatchdayMatches({ matchday, reference }: { matchday: Matchday; referenc
                             team={team}
                             matches={matchesByTeam.get(team.id) ?? []}
                             draft={draftFor(team)}
+                            matchday={matchday}
                             suggestion={suggestions.data?.[String(team.id)]}
                             onChange={(patch) => update(team, patch)}
-                            onEdit={(match) => setSheet({ team, match })}
+                            onEdit={(match) => setSheet({ team, match, suggestedHomeAway: suggestions.data?.[String(team.id)]?.suggestion ?? null })}
                         />
                     ))}
                 </ul>
@@ -142,7 +157,7 @@ function MatchdayMatches({ matchday, reference }: { matchday: Matchday; referenc
                             const suggestion = suggestions.data?.[String(team.id)];
 
                             if (teamMatches.length === 0) {
-                                return <DraftRow key={team.id} team={team} draft={draftFor(team)} suggestion={suggestion} onChange={(patch) => update(team, patch)} />;
+                                return <DraftRow key={team.id} team={team} draft={draftFor(team)} matchday={matchday} suggestion={suggestion} onChange={(patch) => update(team, patch)} />;
                             }
 
                             return teamMatches.map((match, index) => (
@@ -166,7 +181,7 @@ function MatchdayMatches({ matchday, reference }: { matchday: Matchday; referenc
                                             <Pencil aria-hidden />
                                         </Button>
                                         {index === teamMatches.length - 1 && (
-                                            <Button variant="ghost" size="icon" onClick={() => setSheet({ team, match: null })} aria-label={`${t('matches.add')}: ${team.name}`}>
+                                            <Button variant="ghost" size="icon" onClick={() => setSheet({ team, match: null, suggestedHomeAway: suggestions.data?.[String(team.id)]?.suggestion ?? null })} aria-label={`${t('matches.add')}: ${team.name}`}>
                                                 <Plus aria-hidden />
                                             </Button>
                                         )}
@@ -180,7 +195,7 @@ function MatchdayMatches({ matchday, reference }: { matchday: Matchday; referenc
             )}
 
             <div className="sticky bottom-0 mt-4 flex justify-end bg-gradient-to-t from-background via-background to-transparent py-3">
-                <Button onClick={submit} disabled={pendingRows.length === 0 || createMatches.isPending}>
+                <Button onClick={submit} disabled={pendingRows.length === 0 || hasInvalidDraft || createMatches.isPending}>
                     <CalendarDays aria-hidden />
                     {t('matches.createSelected', { count: pendingRows.length })}
                 </Button>
@@ -195,13 +210,14 @@ interface TeamCardProps {
     team: Team;
     matches: Match[];
     draft: Draft;
+    matchday: Matchday;
     suggestion: HomeAwaySuggestion | undefined;
     onChange: (patch: Partial<Draft>) => void;
     onEdit: (match: Match | null) => void;
 }
 
 /** Versió per a mòbil del full ràpid: una targeta per equip. */
-function TeamCard({ team, matches, draft, suggestion, onChange, onEdit }: TeamCardProps) {
+function TeamCard({ team, matches, draft, matchday, suggestion, onChange, onEdit }: TeamCardProps) {
     return (
         <li>
             <Card className={cn('gap-3 px-4 py-3', (matches.some((m) => m.home_away === 'home') || (matches.length === 0 && draft.choice === 'home')) && HOME_CARD)}>
@@ -212,7 +228,10 @@ function TeamCard({ team, matches, draft, suggestion, onChange, onEdit }: TeamCa
                     </Button>
                 </div>
                 {matches.length === 0 ? (
-                    <DraftControls team={team} draft={draft} suggestion={suggestion} onChange={onChange} />
+                    <>
+                        <DraftControls team={team} draft={draft} matchday={matchday} suggestion={suggestion} onChange={onChange} />
+                        <DraftWhen team={team} draft={draft} matchday={matchday} onChange={onChange} />
+                    </>
                 ) : (
                     matches.map((match) => (
                         <button
@@ -269,6 +288,7 @@ function MatchWhen({ match }: { match: Match }) {
 interface DraftRowProps {
     team: Team;
     draft: Draft;
+    matchday: Matchday;
     suggestion: HomeAwaySuggestion | undefined;
     onChange: (patch: Partial<Draft>) => void;
 }
@@ -280,7 +300,9 @@ function DraftRow(props: DraftRowProps) {
                 <TeamCell team={props.team} />
             </TableCell>
             <DraftControls {...props} cell />
-            <TableCell className="text-sm text-muted-foreground">{t('matches.unscheduled')}</TableCell>
+            <TableCell className="text-sm">
+                <DraftWhen team={props.team} draft={props.draft} matchday={props.matchday} onChange={props.onChange} cell />
+            </TableCell>
             <TableCell />
         </TableRow>
     );
@@ -299,7 +321,10 @@ function DraftControls({ team, draft, suggestion, onChange, cell = false }: Draf
                 <label htmlFor={conditionId} className={cell ? 'sr-only' : 'mb-1 block text-sm font-medium'}>
                     {cell ? `${t('matches.condition')} · ${team.name}` : t('matches.condition')}
                 </label>
-                <NativeSelect id={conditionId} value={draft.choice} onChange={(e) => onChange({ choice: e.target.value as Choice })}>
+                <NativeSelect id={conditionId} value={draft.choice} onChange={(e) => {
+                        const choice = e.target.value as Choice;
+                        onChange(choice === 'away' ? { choice } : { choice, date: '', time: '' });
+                    }}>
                     <option value="">{t('matches.notEntered')}</option>
                     <option value="home">{t('labels.homeAway.home')}</option>
                     <option value="away">{t('labels.homeAway.away')}</option>
@@ -318,5 +343,50 @@ function DraftControls({ team, draft, suggestion, onChange, cell = false }: Draf
                 <Input id={opponentId} value={draft.opponent} onChange={(e) => onChange({ opponent: e.target.value })} disabled={draft.choice === ''} />
             </Wrapper>
         </>
+    );
+}
+
+interface DraftWhenProps {
+    team: Team;
+    draft: Draft;
+    matchday: Matchday;
+    onChange: (patch: Partial<Draft>) => void;
+    /** A la taula el text de les etiquetes només el veuen els lectors de pantalla. */
+    cell?: boolean;
+}
+
+/** Dia i hora d'un partit a fora, directament al full ràpid; els partits a casa es col·loquen sols. */
+function DraftWhen({ team, draft, matchday, onChange, cell = false }: DraftWhenProps) {
+    if (draft.choice !== 'away') {
+        return cell ? <span className="text-muted-foreground">{t('matches.unscheduled')}</span> : null;
+    }
+
+    const dateId = `quick-date-${team.id}`;
+    const timeId = `quick-time-${team.id}`;
+    const label = cell ? 'sr-only' : 'mb-1 block text-sm font-medium';
+    const invalid = isDraftInvalid(draft);
+
+    return (
+        <div className={cell ? 'flex items-center gap-2' : 'grid grid-cols-2 gap-2'}>
+            <div>
+                <label htmlFor={dateId} className={label}>
+                    {cell ? `${t('matches.date')} · ${team.name}` : t('matches.date')}
+                </label>
+                <NativeSelect id={dateId} value={draft.date} onChange={(e) => onChange({ date: e.target.value })} aria-invalid={invalid && draft.date === ''}>
+                    <option value="">{t('matches.unscheduled')}</option>
+                    {matchdayDates(matchday).map((date) => (
+                        <option key={date} value={date}>
+                            {formatWeekdayDate(date)}
+                        </option>
+                    ))}
+                </NativeSelect>
+            </div>
+            <div className={cell ? 'w-24' : undefined}>
+                <label htmlFor={timeId} className={label}>
+                    {cell ? `${t('matches.kickoff')} · ${team.name}` : t('matches.kickoff')}
+                </label>
+                <TimeTextInput id={timeId} value={draft.time} onChange={(e) => onChange({ time: e.target.value })} aria-invalid={invalid && !isTime(draft.time)} />
+            </div>
+        </div>
     );
 }
