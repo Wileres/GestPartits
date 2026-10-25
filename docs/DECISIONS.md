@@ -71,4 +71,6 @@ Formato: `D-NNN · fecha · estado` (Propuesta / Aceptada / Sustituida). Detalle
 | D-065 | 2026-10-25 | Aceptada | L'avís «Falten dades del partit a fora» només es mostra si falta el dia o l'hora; la instal·lació ja no s'exigeix | La instal·lació és informativa |
 | D-066 | 2026-10-25 | Aceptada | Peu de les imatges: `@olotjspm` a l'esquerra i `#futboldebarri` a la dreta (Chromium i GD) | Identitat del club a les xarxes |
 | D-067 | 2026-10-25 | Propuesta | L'enllaç manual de WhatsApp usa `api.whatsapp.com/send?text=` en comptes de `wa.me` | Mitigació dels emojis perduts (�); si persisteix, cal copiar el missatge |
+| D-068 | 2026-10-25 | Aceptada | Programació, Partits i Avisos carreguen per defecte l'última jornada creada (id més alt de la temporada), no la primera que encara no ha acabat | Petició del club; el gestor treballa sempre amb la jornada que acaba de crear |
+| D-069 | 2026-10-25 | Aceptada | Secció «Ajuda» al menú amb la Guia ràpida (passos) i la Guia completa (per seccions amb índex); textos al diccionari `ca.help` | Visible per a tots els usuaris; passa pels mateixos controls d'idioma que la resta de textos |
 

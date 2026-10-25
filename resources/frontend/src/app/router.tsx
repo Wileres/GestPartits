@@ -27,6 +27,8 @@ const UsersPage = page(() => import('@/features/users/UsersPage'), 'UsersPage');
 const NotificationsPage = page(() => import('@/features/notifications/NotificationsPage'), 'NotificationsPage');
 const WhatsAppSettingsPage = page(() => import('@/features/whatsapp/WhatsAppSettingsPage'), 'WhatsAppSettingsPage');
 const AppearancePage = page(() => import('@/features/appearance/AppearancePage'), 'AppearancePage');
+const QuickGuidePage = page(() => import('@/features/help/HelpGuides'), 'QuickGuidePage');
+const FullGuidePage = page(() => import('@/features/help/HelpGuides'), 'FullGuidePage');
 const AuditPage = page(() => import('@/features/audit/AuditPage'), 'AuditPage');
 const ProfilePage = page(() => import('@/features/auth/ProfilePage'), 'ProfilePage');
 
@@ -61,6 +63,8 @@ export const routes: RouteObject[] = [
             { path: 'equips', element: protectedPage(() => <TeamsPage />) },
             { path: 'temporades', element: protectedPage(() => <SeasonsPage />) },
             { path: 'avisos', element: protectedPage(() => <NotificationsPage />) },
+            { path: 'ajuda/guia-rapida', element: protectedPage(() => <QuickGuidePage />) },
+            { path: 'ajuda/guia-completa', element: protectedPage(() => <FullGuidePage />) },
             { path: 'configuracio/categories', element: protectedPage(() => <CategoriesPage />, adminOnly) },
             { path: 'configuracio/franges', element: protectedPage(() => <SlotsPage />, adminOnly) },
             { path: 'configuracio/bloquejos', element: protectedPage(() => <BlocksPage />, adminOnly) },

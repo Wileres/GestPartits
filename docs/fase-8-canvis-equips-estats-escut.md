@@ -28,3 +28,10 @@ Antes, un partido confirmado no lo movía la propuesta automática. Como ahora *
 ## Pruebas
 
 Backend: **268** (11 nuevas para el horario preferente y la convocatoria, 4 para la edición desde la ficha, 8 del escudo único, más las adaptadas a los nuevos estados). Frontend: **76** (edición del horario desde la ficha, validación, herencia de la categoría, convocatoria por defecto, estados y escudo en el login).
+
+## Addenda (2026-10-25)
+
+- **Jornada per defecte:** `useMatchdaySelection` tria l'última jornada creada (D-068). Prova: `help.test.tsx`.
+- **Ajuda:** rutes `/ajuda/guia-rapida` i `/ajuda/guia-completa`, components a `features/help/HelpGuides.tsx` i textos a `ca.help` (D-069).
+- **Convocatòria, dia i hora a fora, peu de les imatges, avisos i enllaç de WhatsApp:** D-062 a D-067.
+
