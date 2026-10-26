@@ -3,7 +3,7 @@
 namespace App\Infrastructure\Imaging;
 
 use App\Domain\Imaging\Branding;
-use App\Domain\Imaging\LayoutPlanner;
+use App\Domain\Imaging\PosterFormat;
 use App\Domain\Imaging\PosterPage;
 use App\Domain\Imaging\ResultsPage;
 use App\Domain\Imaging\ScheduleImageRenderer;
@@ -36,12 +36,12 @@ class ChromiumRenderer implements ScheduleImageRenderer
 
     public function render(PosterPage $page, Branding $branding): string
     {
-        return $this->screenshot($this->html($page, $branding));
+        return $this->screenshot($this->html($page, $branding), $page->poster->format);
     }
 
     public function renderResults(ResultsPage $page, Branding $branding): string
     {
-        return $this->screenshot($this->resultsHtml($page, $branding));
+        return $this->screenshot($this->resultsHtml($page, $branding), $page->poster->format);
     }
 
     private function view(string $name, PosterPage|ResultsPage $page, Branding $branding): string
@@ -57,10 +57,10 @@ class ChromiumRenderer implements ScheduleImageRenderer
         ])->render();
     }
 
-    private function screenshot(string $html): string
+    private function screenshot(string $html, PosterFormat $format): string
     {
         $browser = (new BrowserFactory($this->binary))->createBrowser([
-            'windowSize' => [LayoutPlanner::WIDTH, LayoutPlanner::HEIGHT],
+            'windowSize' => [$format->width(), $format->height()],
             'headless' => true,
             'noSandbox' => true,
             'customFlags' => ['--disable-gpu', '--hide-scrollbars', '--font-render-hinting=none', '--disable-extensions', '--no-first-run'],
@@ -69,14 +69,14 @@ class ChromiumRenderer implements ScheduleImageRenderer
 
         try {
             $tab = $browser->createPage();
-            $tab->setViewport(LayoutPlanner::WIDTH, LayoutPlanner::HEIGHT)->await();
+            $tab->setViewport($format->width(), $format->height())->await();
             $tab->setHtml($html, 15000);
             // Les fonts incrustades s'han de carregar abans de la captura.
             $tab->evaluate('document.fonts.ready.then(() => true)')->getReturnValue(10000);
 
             return base64_decode($tab->screenshot([
                 'format' => 'png',
-                'clip' => new Clip(0, 0, LayoutPlanner::WIDTH, LayoutPlanner::HEIGHT),
+                'clip' => new Clip(0, 0, $format->width(), $format->height()),
             ])->getBase64(30000));
         } finally {
             $browser->close();

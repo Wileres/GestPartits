@@ -42,3 +42,9 @@ Backend: **268** (11 nuevas para el horario preferente y la convocatoria, 4 para
 - **Editor per a xarxes socials** al navegador (D-075).
 - Migracions: `2026_10_26_000100_add_match_results` i `2026_10_26_000200_generated_images_history`.
 
+## Addenda (2026-10-27): format de publicació i mode comprimit
+
+- Format d'imatge: història o publicació d'Instagram (D-076); imatge de resultats sempre com a publicació i amb les files estirades.
+- Mode comprimit amb caixes proporcionals al nombre de partits (D-077) i mides del text per fila (D-078).
+- Les generacions antigues, sense format guardat, es mostren com a històries.
+

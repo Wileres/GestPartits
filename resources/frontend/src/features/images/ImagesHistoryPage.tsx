@@ -19,6 +19,19 @@ const filters: { value: ImageKind | null; label: string }[] = [
     { value: 'results', label: t('images.kinds.results') },
 ];
 
+/** «Publicació d'Instagram · comprimit · separats a casa i a fora». */
+function optionsLabel(batch: ImageBatch): string {
+    const options = batch.options;
+
+    return [
+        t(`images.formats.${options?.format === 'post' ? 'post' : 'story'}`),
+        options?.compress === true ? t('images.optionCompressed') : null,
+        options?.group_home_away === true ? t('images.optionGrouped') : t('images.optionPlain'),
+    ]
+        .filter((part) => part !== null)
+        .join(' · ');
+}
+
 /** Històric de totes les imatges generades: es poden baixar i esborrar a mà. */
 export function ImagesHistoryPage() {
     const [kind, setKind] = useState<ImageKind | null>(null);
@@ -57,7 +70,7 @@ export function ImagesHistoryPage() {
                                         </p>
                                         <p className="text-xs text-muted-foreground">
                                             {batch.created_by === null ? t('images.generatedOn', { date: formatDateTime(batch.created_at) }) : t('images.generatedBy', { name: batch.created_by, date: formatDateTime(batch.created_at) })}
-                                            {batch.kind === 'schedule' && ` · ${batch.options?.group_home_away === true ? t('images.optionGrouped') : t('images.optionPlain')}`}
+                                            {batch.kind === 'schedule' && ` · ${optionsLabel(batch)}`}
                                         </p>
                                     </div>
                                     <Button variant="outline" size="sm" onClick={() => setToDelete({ batch, imageId: null })}>

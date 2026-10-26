@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Communications;
 
-use App\Domain\Imaging\LayoutPlanner;
+use App\Domain\Imaging\PosterFormat;
 use App\Enums\WhatsAppMessageStatus;
 use App\Infrastructure\Imaging\FakeRenderer;
 use App\Models\GeneratedImage;
@@ -170,7 +170,40 @@ class ImageHistoryTest extends TestCase
         $this->assertTrue($sunday->poster->grouped);
         // Fora a les 10:00 i casa a les 12:00: agrupat, la casa va primer.
         $this->assertSame([true, false], array_map(fn ($e) => $e->home, $sunday->entries));
-        $this->assertSame(['group_home_away' => true], GeneratedImage::query()->latest('id')->first()->options);
+        $this->assertSame(['group_home_away' => true, 'format' => 'story', 'compress' => false], GeneratedImage::query()->latest('id')->first()->options);
+    }
+
+    public function test_the_schedule_can_be_generated_as_a_compressed_instagram_post(): void
+    {
+        $matchday = $this->weekend();
+        $this->matchesFor($matchday);
+        $schedule = $this->confirmed($matchday);
+
+        $this->spa()->postJson("/api/schedules/{$schedule->id}/images", ['format' => 'post', 'compress' => true])->assertStatus(202);
+
+        // Una imatge per dia (dissabte i diumenge), en format 4:5 i amb les caixes estirades.
+        $this->assertCount(2, $this->renderer->rendered);
+        foreach ($this->renderer->rendered as $page) {
+            $this->assertSame(PosterFormat::Post, $page->poster->format);
+            $this->assertTrue($page->poster->compress);
+            $this->assertSame('fill', $page->mode);
+        }
+        $images = GeneratedImage::query()->get();
+        $this->assertSame([[1080, 1350], [1080, 1350]], $images->map(fn ($i) => [$i->width, $i->height])->all());
+        $this->assertSame(['group_home_away' => false, 'format' => 'post', 'compress' => true], $images->first()->options);
+    }
+
+    public function test_the_default_is_a_story_and_unknown_formats_are_rejected(): void
+    {
+        $matchday = $this->weekend();
+        $this->matchesFor($matchday);
+        $schedule = $this->confirmed($matchday);
+
+        $this->spa()->postJson("/api/schedules/{$schedule->id}/images", ['format' => 'banner'])->assertUnprocessable()->assertJsonValidationErrors(['format']);
+        $this->spa()->postJson("/api/schedules/{$schedule->id}/images")->assertStatus(202);
+
+        $this->assertSame([1080, 1920], [GeneratedImage::query()->first()->width, GeneratedImage::query()->first()->height]);
+        $this->assertSame(PosterFormat::Story, $this->renderer->rendered[0]->poster->format);
     }
 
     public function test_results_image_needs_at_least_one_result(): void
@@ -205,7 +238,8 @@ class ImageHistoryTest extends TestCase
         $image = GeneratedImage::query()->firstOrFail();
         $this->assertSame('results', $image->kind);
         $this->assertNull($image->schedule_id);
-        $this->assertSame([LayoutPlanner::WIDTH, LayoutPlanner::HEIGHT], [$image->width, $image->height]);
+        // La imatge de resultats té format de publicació d'Instagram (4:5).
+        $this->assertSame([1080, 1350], [$image->width, $image->height]);
         $this->assertSame('resultats-2026-10-17.png', $image->downloadName());
 
         $this->spa()->getJson("/api/matchdays/{$matchday->id}/result-images")->assertOk()->assertJsonCount(1, 'data.images')->assertJsonPath('data.images.0.kind', 'results');

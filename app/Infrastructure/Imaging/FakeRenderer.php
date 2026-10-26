@@ -3,7 +3,7 @@
 namespace App\Infrastructure\Imaging;
 
 use App\Domain\Imaging\Branding;
-use App\Domain\Imaging\LayoutPlanner;
+use App\Domain\Imaging\PosterFormat;
 use App\Domain\Imaging\PosterPage;
 use App\Domain\Imaging\ResultsPage;
 use App\Domain\Imaging\ScheduleImageRenderer;
@@ -28,19 +28,19 @@ class FakeRenderer implements ScheduleImageRenderer
     {
         $this->rendered[] = $page;
 
-        return $this->png();
+        return $this->png($page->poster->format);
     }
 
     public function renderResults(ResultsPage $page, Branding $branding): string
     {
         $this->renderedResults[] = $page;
 
-        return $this->png();
+        return $this->png($page->poster->format);
     }
 
-    private function png(): string
+    private function png(PosterFormat $format): string
     {
-        $image = imagecreatetruecolor(LayoutPlanner::WIDTH, LayoutPlanner::HEIGHT);
+        $image = imagecreatetruecolor($format->width(), $format->height());
         imagefill($image, 0, 0, imagecolorallocate($image, 11, 78, 162));
         ob_start();
         imagepng($image);

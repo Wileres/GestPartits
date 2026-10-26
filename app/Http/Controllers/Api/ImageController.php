@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Domain\Imaging\PosterFormat;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\GeneratedImageResource;
 use App\Jobs\GenerateResultsImages;
@@ -39,10 +40,20 @@ class ImageController extends Controller
         $this->authorize('update', $schedule);
         $this->images->ensureConfirmed($schedule);
 
-        $options = $request->validate(['group_home_away' => ['sometimes', 'boolean']]);
+        $options = $request->validate([
+            'group_home_away' => ['sometimes', 'boolean'],
+            // Història (1080 × 1920) o publicació d'Instagram (1080 × 1350).
+            'format' => ['sometimes', Rule::enum(PosterFormat::class)],
+            // Tots els partits d'un dia en una sola imatge, amb les caixes estirades.
+            'compress' => ['sometimes', 'boolean'],
+        ]);
 
         Cache::put(ImageService::pendingKey($schedule), true, now()->addMinutes(10));
-        GenerateScheduleImages::dispatch($schedule->id, $request->user()->id, ['group_home_away' => (bool) ($options['group_home_away'] ?? false)]);
+        GenerateScheduleImages::dispatch($schedule->id, $request->user()->id, [
+            'group_home_away' => (bool) ($options['group_home_away'] ?? false),
+            'format' => $options['format'] ?? PosterFormat::Story->value,
+            'compress' => (bool) ($options['compress'] ?? false),
+        ]);
 
         return $this->state($schedule->refresh(), 202);
     }

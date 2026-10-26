@@ -14,7 +14,7 @@ Programació dels partits de futbol del **Joventut Sant Pere Màrtir**: equips, 
 4. **Programació:** «Genera una proposta» col·loca els partits a casa segons les franges, la capacitat del camp (2 partits de futbol 7 alhora, o 1 de futbol 11) i les regles. Després es pot ajustar arrossegant les targetes.
 5. **Confirma la programació:** no es pot confirmar mentre hi hagi conflictes crítics.
 6. **Imatges i avisos:**
-   - Genera les imatges: 1080 × 1920, una per dia, amb l'opció de separar els partits a casa i a fora.
+   - Genera les imatges: una per dia, en format història (1080 × 1920) o publicació d'Instagram (1080 × 1350), amb les opcions de comprimir tots els partits d'un dia en una sola imatge (caixes estirades) i de separar els partits a casa i a fora.
    - Totes les imatges generades es conserven a **Imatges** (històric): es poden baixar i esborrar a mà.
    - Prepara els avisos: es revisen i s'envien només amb una confirmació explícita.
 7. **Resultats i xarxes socials:**
@@ -235,7 +235,7 @@ La plataforma oficial de WhatsApp no publica en grups existents. L'aplicació se
 - `chromium` (recomanat): necessita `CHROMIUM_BINARY`, per defecte `/usr/bin/chromium`;
 - `gd`: per a servidors sense Chromium, amb les fonts `GD_FONT_REGULAR` i `GD_FONT_BOLD`.
 
-Les imatges són de 1080 × 1920 i en PNG. Si un dia té més de 8 partits es fa servir el disseny compacte, i amb més de 10 es generen diverses pàgines (amb els partits separats a casa i a fora, els títols de grup també ocupen alçada i la paginació es calcula amb l'alçada real). La imatge de resultats és una sola imatge fins a 17 resultats (la densitat augmenta amb el nombre de files). L'escut i els colors es canvien a **Configuració → Aparença**.
+Les imatges són PNG de 1080 × 1920 (història) o 1080 × 1350 (publicació d'Instagram). Si un dia té més de 8 partits es fa servir el disseny compacte, i amb més de 10 es generen diverses pàgines (amb els partits separats a casa i a fora, els títols de grup també ocupen alçada i la paginació es calcula amb l'alçada real). La imatge de resultats sempre és una publicació d'Instagram (1080 × 1350) i les files s'estiren per omplir-la: una sola imatge fins a 16 resultats; amb més, pàgines equilibrades. En mode comprimit, els partits d'un dia van en una sola imatge amb caixes proporcionals al nombre de partits (entre 64 i 190 px); només es reparteix en pàgines si no hi caben a l'alçada mínima. L'escut i els colors es canvien a **Configuració → Aparença**.
 
 Cada generació es conserva (taula `generated_images`, fitxers a `storage/app/private/images/{jornada}/{generació}/`) fins que s'esborra manualment des de **Imatges**; ja no hi ha neteja automàtica ni `IMAGE_KEEP_DAYS`. Una imatge adjunta a un avís de WhatsApp que ja s'ha enviat no es pot esborrar. Les còpies de seguretat (`deploy/backup.sh`) inclouen aquests fitxers, de manera que l'històric pot fer créixer l'espai: un parell d'imatges d'uns 0,5 MB per generació.
 

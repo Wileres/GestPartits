@@ -1,12 +1,9 @@
 @php
     /** @var \App\Domain\Imaging\ResultsPage $page */
     /** @var \App\Domain\Imaging\Branding $branding */
-    $mode = $page->mode;
-    $row = \App\Domain\Imaging\LayoutPlanner::resultRow($mode);
-    $dense = $mode === \App\Domain\Imaging\ResultsPage::MODE_DENSE;
-    $compact = $mode === \App\Domain\Imaging\ResultsPage::MODE_COMPACT;
-    $name = $dense ? 28 : ($compact ? 32 : 36);
-    $score = $dense ? 40 : ($compact ? 46 : 54);
+    $format = $page->poster->format;
+    $m = \App\Domain\Imaging\RowMetrics::result($page->rowHeight);
+    $gap = \App\Domain\Imaging\LayoutPlanner::RESULT_GAP;
 @endphp
 <!DOCTYPE html>
 <html lang="ca">
@@ -14,13 +11,13 @@
 <meta charset="utf-8">
 @include('images.partials.styles')
 <style>
-    main { position: relative; padding: 0 56px; display: flex; flex-direction: column; gap: {{ \App\Domain\Imaging\LayoutPlanner::RESULT_GAP }}px; }
-    .result { height: {{ $row }}px; background: #fff; border-radius: {{ $dense ? 18 : 26 }}px; display: flex; align-items: center; padding: 0 {{ $dense ? 24 : 32 }}px; gap: 18px; box-shadow: 0 8px 24px rgba(0,0,0,0.16); }
-    .result .team, .result .opponent { flex: 1; min-width: 0; font-size: {{ $name }}px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    main { position: relative; padding: 0 56px; display: flex; flex-direction: column; gap: {{ $gap }}px; }
+    .result { height: {{ $m->row }}px; background: #fff; border-radius: {{ $m->radius }}px; display: flex; align-items: center; padding: 0 {{ $m->row < 80 ? 24 : 32 }}px; gap: 18px; box-shadow: 0 8px 24px rgba(0,0,0,0.16); }
+    .result .team, .result .opponent { flex: 1; min-width: 0; font-size: {{ $m->team }}px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .result .team { font-weight: 800; text-align: left; }
     .result .opponent { font-weight: 500; color: #33445e; text-align: right; }
-    .score { flex-shrink: 0; min-width: {{ $dense ? 150 : 190 }}px; padding: {{ $dense ? 2 : 6 }}px 16px; border-radius: 999px; background: {{ $branding->primaryColor }}; color: #fff; text-align: center; font-size: {{ $score }}px; font-weight: 900; font-variant-numeric: tabular-nums; line-height: 1.2; }
-    .venue { flex-shrink: 0; width: {{ $dense ? 70 : 90 }}px; text-align: center; font-size: {{ $dense ? 17 : 20 }}px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
+    .score { flex-shrink: 0; min-width: {{ $m->timeWidth }}px; padding: {{ max(0, (int) round($m->row * 0.04)) }}px 16px; border-radius: 999px; background: {{ $branding->primaryColor }}; color: #fff; text-align: center; font-size: {{ $m->time }}px; font-weight: 900; font-variant-numeric: tabular-nums; line-height: 1.2; }
+    .venue { flex-shrink: 0; width: {{ $m->badgeWidth }}px; text-align: center; font-size: {{ $m->badgeFont }}px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
     .venue.home { color: {{ $branding->primaryColor }}; }
     .venue.away { color: #52627a; }
 </style>

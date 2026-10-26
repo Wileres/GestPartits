@@ -3,7 +3,7 @@ import { ImageIcon, Loader2, RefreshCw, TriangleAlert } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { toast } from 'sonner';
-import { imagesApi, type GeneratedImage } from '@/api/communications';
+import { imagesApi, type GeneratedImage, type ImageFormat } from '@/api/communications';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -19,6 +19,8 @@ import { IMAGE_HISTORY_KEY, imagesKey, useDeleteImages } from './useImages';
 export function ImagesDialog({ scheduleId, open, onClose }: { scheduleId: number; open: boolean; onClose: () => void }) {
     const queryClient = useQueryClient();
     const [grouped, setGrouped] = useState(false);
+    const [format, setFormat] = useState<ImageFormat>('story');
+    const [compress, setCompress] = useState(false);
     const [toDelete, setToDelete] = useState<GeneratedImage | 'batch' | null>(null);
     const state = useQuery({
         queryKey: imagesKey(scheduleId),
@@ -27,7 +29,7 @@ export function ImagesDialog({ scheduleId, open, onClose }: { scheduleId: number
         refetchInterval: (query) => (query.state.data?.generating === true ? 2000 : false),
     });
     const generate = useMutation({
-        mutationFn: () => imagesApi.generate(scheduleId, { group_home_away: grouped }),
+        mutationFn: () => imagesApi.generate(scheduleId, { group_home_away: grouped, format, compress }),
         onSuccess: (data) => {
             queryClient.setQueryData(imagesKey(scheduleId), data);
             void queryClient.invalidateQueries({ queryKey: IMAGE_HISTORY_KEY });
@@ -52,13 +54,33 @@ export function ImagesDialog({ scheduleId, open, onClose }: { scheduleId: number
 
                     <fieldset className="rounded-lg border p-3">
                         <legend className="px-1 text-sm font-medium">{t('images.options')}</legend>
-                        <label className="flex items-start gap-2 text-sm">
-                            <input type="checkbox" className="mt-0.5 size-4 accent-primary" checked={grouped} onChange={(e) => setGrouped(e.target.checked)} />
-                            <span>
-                                {t('images.groupHomeAway')}
-                                <span className="block text-xs text-muted-foreground">{t('images.groupHomeAwayHelp')}</span>
-                            </span>
-                        </label>
+                        <div className="grid gap-3">
+                            <div role="radiogroup" aria-label={t('images.format')} className="grid gap-2 sm:grid-cols-2">
+                                {(['story', 'post'] as const).map((value) => (
+                                    <label
+                                        key={value}
+                                        className="flex cursor-pointer items-center justify-center rounded-md border px-3 py-2 text-center text-sm has-checked:border-primary has-checked:bg-secondary has-checked:text-primary"
+                                    >
+                                        <input type="radio" name="image-format" className="sr-only" checked={format === value} onChange={() => setFormat(value)} />
+                                        {t(`images.formats.${value}`)}
+                                    </label>
+                                ))}
+                            </div>
+                            <label className="flex items-start gap-2 text-sm">
+                                <input type="checkbox" className="mt-0.5 size-4 accent-primary" checked={compress} onChange={(e) => setCompress(e.target.checked)} />
+                                <span>
+                                    {t('images.compress')}
+                                    <span className="block text-xs text-muted-foreground">{t('images.compressHelp')}</span>
+                                </span>
+                            </label>
+                            <label className="flex items-start gap-2 text-sm">
+                                <input type="checkbox" className="mt-0.5 size-4 accent-primary" checked={grouped} onChange={(e) => setGrouped(e.target.checked)} />
+                                <span>
+                                    {t('images.groupHomeAway')}
+                                    <span className="block text-xs text-muted-foreground">{t('images.groupHomeAwayHelp')}</span>
+                                </span>
+                            </label>
+                        </div>
                     </fieldset>
 
                     {generating && (

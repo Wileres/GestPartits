@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Domain\Imaging\DayPoster;
 use App\Domain\Imaging\LayoutPlanner;
 use App\Domain\Imaging\PosterEntry;
+use App\Domain\Imaging\PosterFormat;
 use App\Domain\Imaging\ResultEntry;
 use App\Domain\Imaging\ResultsPoster;
 use App\Domain\Imaging\ScheduleImageRenderer;
@@ -68,10 +69,11 @@ class ImageService
     /**
      * Pòsters dels dies de la jornada amb partits (a casa i a fora), en ordre cronològic.
      * Si s'agrupen, a cada dia van primer els partits a casa i després els de fora.
+     * Si es comprimeix, tots els partits d'un dia van en una sola imatge amb les caixes estirades.
      *
      * @return list<DayPoster>
      */
-    public function posters(Schedule $schedule, bool $grouped = false): array
+    public function posters(Schedule $schedule, bool $grouped = false, bool $compress = false, PosterFormat $format = PosterFormat::Story): array
     {
         $matchday = $schedule->matchday;
         $subtitle = $matchday->label ?? '';
@@ -98,7 +100,7 @@ class ImageService
             ))->values()->all();
 
             if ($entries !== []) {
-                $posters[] = new DayPoster($date, Str::ucfirst(CatalanDate::weekday($day)), CatalanDate::date($day), $subtitle, $entries, $grouped);
+                $posters[] = new DayPoster($date, Str::ucfirst(CatalanDate::weekday($day)), CatalanDate::date($day), $subtitle, $entries, $grouped, $compress, $format);
             }
         }
 
@@ -129,14 +131,14 @@ class ImageService
         $first = CatalanDate::date($matchday->starts_on);
         $last = CatalanDate::date($matchday->ends_on);
 
-        return new ResultsPoster('Resultats', $first === $last ? $first : "{$first} – {$last}", $matchday->label ?? '', $entries);
+        return new ResultsPoster('Resultats', $first === $last ? $first : "{$first} – {$last}", $matchday->label ?? '', $entries, PosterFormat::Post);
     }
 
     /**
      * Genera i desa les imatges del calendari de la versió confirmada. Cada generació és un lot nou:
      * les anteriors es conserven a l'històric.
      *
-     * @param  array{group_home_away?: bool}  $options
+     * @param  array{group_home_away?: bool, format?: string, compress?: bool}  $options
      * @return Collection<int, GeneratedImage>
      */
     public function generate(Schedule $schedule, ?int $userId = null, array $options = []): Collection
@@ -145,11 +147,13 @@ class ImageService
         $this->ensureConfirmed($schedule);
 
         $grouped = (bool) ($options['group_home_away'] ?? false);
+        $compress = (bool) ($options['compress'] ?? false);
+        $format = PosterFormat::tryFrom((string) ($options['format'] ?? '')) ?? PosterFormat::Story;
         $branding = $this->branding->forImages();
         $batch = (string) Str::ulid();
         $rendered = [];
 
-        foreach ($this->posters($schedule, $grouped) as $poster) {
+        foreach ($this->posters($schedule, $grouped, $compress, $format) as $poster) {
             $plan = $this->planner->plan($poster);
 
             foreach ($plan->pages as $page) {
@@ -168,10 +172,10 @@ class ImageService
         $this->persist($rendered, [
             'kind' => GeneratedImage::KIND_SCHEDULE, 'matchday_id' => $schedule->matchday_id, 'batch_id' => $batch,
             'schedule_id' => $schedule->id, 'schedule_version_id' => (int) $schedule->confirmed_version_id,
-            'options' => ['group_home_away' => $grouped], 'created_by' => $userId,
+            'options' => ['group_home_away' => $grouped, 'format' => $format->value, 'compress' => $compress], 'created_by' => $userId,
         ]);
 
-        $this->audit->log('images.generated', $schedule, null, ['version_id' => $schedule->confirmed_version_id, 'batch' => $batch, 'images' => count($rendered), 'group_home_away' => $grouped], $userId);
+        $this->audit->log('images.generated', $schedule, null, ['version_id' => $schedule->confirmed_version_id, 'batch' => $batch, 'images' => count($rendered), 'group_home_away' => $grouped, 'format' => $format->value, 'compress' => $compress], $userId);
 
         return $this->batchImages($batch);
     }

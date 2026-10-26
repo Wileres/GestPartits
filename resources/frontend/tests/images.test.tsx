@@ -54,7 +54,34 @@ describe('imatges del calendari', () => {
 
         await waitFor(() => expect(calls.some((c) => c.url === '/api/schedules/3/images' && c.init.method === 'POST')).toBe(true));
         const post = calls.find((c) => c.url === '/api/schedules/3/images' && c.init.method === 'POST');
-        expect(JSON.parse(String(post?.init.body))).toEqual({ group_home_away: true });
+        expect(JSON.parse(String(post?.init.body))).toEqual({ group_home_away: true, format: 'story', compress: false });
+    });
+
+    it('permet triar el format de publicació d’Instagram i comprimir els partits d’un dia', async () => {
+        const { calls } = mockFetch(
+            scheduleServer((url, init) => {
+                if (url === '/api/schedules/3/images' && init.method === 'POST') return { status: 202, body: { data: { generating: true, confirmed: true, images: [] } } };
+                if (url === '/api/schedules/3/images') return { status: 200, body: { data: { generating: false, confirmed: true, images: [] } } };
+
+                return { status: 404 };
+            }),
+        );
+        renderApp('/');
+        const user = userEvent.setup();
+
+        await user.click(await screen.findByRole('button', { name: 'Genera les imatges' }));
+        const dialog = await screen.findByRole('dialog');
+        // Per defecte, la història de 1080 × 1920, sense comprimir.
+        expect(within(dialog).getByRole('radio', { name: 'Història (1080 × 1920)' })).toBeChecked();
+        expect(within(dialog).getByRole('checkbox', { name: /Comprimeix tots els partits d’un dia/ })).not.toBeChecked();
+
+        await user.click(within(dialog).getByRole('radio', { name: 'Publicació d’Instagram (1080 × 1350)' }));
+        await user.click(within(dialog).getByRole('checkbox', { name: /Comprimeix tots els partits d’un dia/ }));
+        await user.click(within(dialog).getByRole('button', { name: 'Genera les imatges' }));
+
+        await waitFor(() => expect(calls.some((c) => c.url === '/api/schedules/3/images' && c.init.method === 'POST')).toBe(true));
+        const post = calls.find((c) => c.url === '/api/schedules/3/images' && c.init.method === 'POST');
+        expect(JSON.parse(String(post?.init.body))).toEqual({ group_home_away: false, format: 'post', compress: true });
     });
 
     it('mostra l’última generació i en deixa esborrar una imatge amb confirmació', async () => {
@@ -105,9 +132,24 @@ describe('històric d’imatges', () => {
         expect(await screen.findByRole('heading', { level: 1, name: 'Imatges generades' })).toBeInTheDocument();
         expect(await screen.findAllByText('Jornada del 17/10/2026 al 18/10/2026')).toHaveLength(2);
         expect(screen.getByText('Separats a casa i a fora', { exact: false })).toBeInTheDocument();
+        // Les generacions antigues, sense format guardat, són històries.
+        expect(screen.getByText(/Història \(1080 × 1920\)/)).toBeInTheDocument();
         const downloads = screen.getAllByRole('link', { name: 'Baixa la imatge' });
         expect(downloads).toHaveLength(3);
         expect(downloads[0]).toHaveAttribute('download', 'resultats-2026-10-17.png');
+    });
+
+    it('indica el format, si estan comprimides i com s’han agrupat', async () => {
+        const post = { ...batch('B3', 'schedule', [image(5, { batch_id: 'B3', width: 1080, height: 1350 })]), options: { group_home_away: false, format: 'post', compress: true } };
+        mockFetch(weekendServer(adminMe, (url) => (url === '/api/generated-images' ? { status: 200, body: { data: [post] } } : { status: 404 })));
+
+        renderApp('/imatges');
+
+        expect(await screen.findByText(/Publicació d’Instagram \(1080 × 1350\) · Comprimides · En ordre d’hora/)).toBeInTheDocument();
+        // La previsualització respecta la proporció real de la imatge (4:5).
+        const preview = screen.getByRole('img');
+        expect(preview).toHaveAttribute('width', '1080');
+        expect(preview).toHaveAttribute('height', '1350');
     });
 
     it('filtra per tipus', async () => {

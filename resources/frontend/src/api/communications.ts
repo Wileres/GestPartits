@@ -106,9 +106,15 @@ export interface ImagesState {
     images: GeneratedImage[];
 }
 
+export type ImageFormat = 'story' | 'post';
+
 export interface ImageOptions {
     /** Separa els partits a casa i a fora a cada imatge, amb un títol petit per a cada grup. */
     group_home_away: boolean;
+    /** Història (1080 × 1920) o publicació d'Instagram (1080 × 1350). */
+    format: ImageFormat;
+    /** Tots els partits d'un dia en una sola imatge, amb les caixes estirades per omplir-la. */
+    compress: boolean;
 }
 
 export interface ResultImagesState {

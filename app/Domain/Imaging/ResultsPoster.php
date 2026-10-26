@@ -15,5 +15,6 @@ final readonly class ResultsPoster
         public string $dateLabel,
         public string $subtitle,
         public array $entries,
+        public PosterFormat $format = PosterFormat::Post,
     ) {}
 }

@@ -21,7 +21,7 @@ export function ImageGrid({ images, onDelete }: ImageGridProps) {
                 return (
                     <li key={image.id} className="grid gap-2">
                         <a href={image.url} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-lg border shadow-sm">
-                            <img src={image.url} alt={label} className="aspect-[9/16] w-full bg-muted object-cover" loading="lazy" />
+                            <img src={image.url} alt={label} width={image.width} height={image.height} style={{ aspectRatio: `${image.width} / ${image.height}` }} className="w-full bg-muted object-cover" loading="lazy" />
                         </a>
                         <p className="text-xs font-medium capitalize">
                             {results ? t('images.kinds.results') : formatWeekdayDate(image.day)}

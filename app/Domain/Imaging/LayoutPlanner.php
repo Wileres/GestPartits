@@ -3,18 +3,24 @@
 namespace App\Domain\Imaging;
 
 /**
- * Decideix quants partits caben a cada imatge de 1080 × 1920 sense fer el text il·legible:
- *  - fins a 8 partits: disseny normal (files de 150 px, text de 40 px o més);
- *  - fins a 10: disseny compacte (files de 118 px, text de 32 px o més) i avís;
- *  - més de 10: diverses pàgines del mateix dia (10 per pàgina) i avís.
- * Si els partits van agrupats («A casa» / «A fora»), cada grup afegeix un títol petit que també ocupa alçada;
- * les pàgines s'omplen segons l'alçada real. Les alçades són fixes, de manera que el resultat és determinista
- * i es pot provar sense navegador.
+ * Decideix quants partits caben a cada imatge sense fer el text il·legible. El format pot ser una història
+ * (1080 × 1920) o una publicació d'Instagram (1080 × 1350).
  *
- * Les imatges de resultats segueixen el mateix criteri amb tres densitats (normal, compacte i dens).
+ * Disseny normal i compacte (per defecte):
+ *  - fins a 8 partits d'una història: disseny normal (files de 150 px, text de 40 px o més);
+ *  - fins a 10: disseny compacte (files de 118 px, text de 32 px o més) i avís;
+ *  - més partits: diverses pàgines del mateix dia.
+ *
+ * Mode comprimit: tots els partits d'un dia en una sola imatge. L'alçada de les caixes és proporcional al nombre de
+ * partits (omplen tot l'espai disponible, entre un mínim i un màxim) i només es reparteix en pàgines si no hi caben
+ * ni a l'alçada mínima.
+ *
+ * Si els partits van agrupats («A casa» / «A fora»), cada grup afegeix un títol petit que també ocupa alçada.
+ * Les alçades són fixes, de manera que el resultat és determinista i es pot provar sense navegador.
  */
 final class LayoutPlanner
 {
+    /** Mides de la història (el format per defecte). */
     public const WIDTH = 1080;
 
     public const HEIGHT = 1920;
@@ -34,88 +40,135 @@ final class LayoutPlanner
 
     public const ROW_GAP = 12;
 
+    /** Alçades mínima i màxima de les caixes en mode comprimit. */
+    public const MIN_FILL_ROW = 64;
+
+    public const MAX_FILL_ROW = 190;
+
     /** Alçada del títol petit d'un grup («A casa» / «A fora»). */
     public const HEADING = 52;
 
     /** Noms més llargs es retallen amb «…» (es mostra un avís). */
     public const LONG_NAME = 26;
 
-    /** Files de la imatge de resultats: normal, compacta i densa. */
-    public const RESULT_NORMAL_ROW = 112;
-
-    public const RESULT_COMPACT_ROW = 90;
-
-    public const RESULT_DENSE_ROW = 68;
-
+    /** Files de la imatge de resultats: separació i alçades mínima i màxima (s'estiren per omplir la imatge). */
     public const RESULT_GAP = 10;
+
+    public const RESULT_MIN_ROW = 50;
+
+    public const RESULT_MAX_ROW = 130;
+
+    /** Per sota d'aquesta alçada s'avisa que s'ha fet servir un disseny dens. */
+    public const RESULT_COMFORT_ROW = 80;
 
     /** A les files de resultats els noms són més estrets. */
     public const RESULT_LONG_NAME = 22;
 
     /** Alçada disponible per a les files entre la capçalera i el peu. */
-    public static function available(): int
+    public static function available(PosterFormat $format = PosterFormat::Story): int
     {
-        return self::HEIGHT - self::HEADER - self::FOOTER;
+        return $format->available();
     }
 
-    public static function capacity(string $mode): int
+    public static function capacity(string $mode, PosterFormat $format = PosterFormat::Story): int
     {
         $row = $mode === PosterPage::MODE_NORMAL ? self::NORMAL_ROW : self::COMPACT_ROW;
 
-        return intdiv(self::available() + self::ROW_GAP, $row + self::ROW_GAP);
+        return intdiv($format->available() + self::ROW_GAP, $row + self::ROW_GAP);
     }
 
-    public static function resultRow(string $mode): int
+    /** Quantes files de resultats caben com a màxim (a l'alçada mínima). */
+    public static function resultCapacity(PosterFormat $format = PosterFormat::Post): int
     {
-        return match ($mode) {
-            ResultsPage::MODE_NORMAL => self::RESULT_NORMAL_ROW,
-            ResultsPage::MODE_COMPACT => self::RESULT_COMPACT_ROW,
-            default => self::RESULT_DENSE_ROW,
-        };
-    }
-
-    public static function resultCapacity(string $mode): int
-    {
-        return intdiv(self::available() + self::RESULT_GAP, self::resultRow($mode) + self::RESULT_GAP);
+        return intdiv($format->available() + self::RESULT_GAP, self::RESULT_MIN_ROW + self::RESULT_GAP);
     }
 
     /**
-     * Alçada que ocupen els partits d'una pàgina (files, buits i, si van agrupats, els títols de grup).
+     * Alçada que ocupen els partits d'una pàgina amb el disseny normal o compacte.
      *
      * @param  list<PosterEntry>  $entries
      */
     public static function heightOf(array $entries, string $mode, bool $grouped): int
     {
-        $row = $mode === PosterPage::MODE_NORMAL ? self::NORMAL_ROW : self::COMPACT_ROW;
-        $height = 0;
-        $previous = null;
+        return self::heightWithRow($entries, $mode === PosterPage::MODE_NORMAL ? self::NORMAL_ROW : self::COMPACT_ROW, $grouped);
+    }
 
+    /**
+     * Alçada que ocupen els partits amb files d'una alçada concreta (files, buits i, si van agrupats, els títols).
+     *
+     * @param  list<PosterEntry>  $entries
+     */
+    public static function heightWithRow(array $entries, int $row, bool $grouped): int
+    {
+        $count = count($entries);
+        if ($count === 0) {
+            return 0;
+        }
+
+        $headings = self::headings($entries, $grouped);
+
+        return $count * $row + $headings * self::HEADING + ($count + $headings - 1) * self::ROW_GAP;
+    }
+
+    /**
+     * Nombre de títols de grup («A casa» / «A fora») d'una pàgina.
+     *
+     * @param  list<PosterEntry>  $entries
+     */
+    public static function headings(array $entries, bool $grouped): int
+    {
+        if (! $grouped) {
+            return 0;
+        }
+
+        $headings = 0;
+        $previous = null;
         foreach ($entries as $index => $entry) {
-            if ($grouped && ($index === 0 || $entry->home !== $previous)) {
-                $height += self::HEADING + self::ROW_GAP;
+            if ($index === 0 || $entry->home !== $previous) {
+                $headings++;
             }
-            $height += $row + self::ROW_GAP;
             $previous = $entry->home;
         }
 
-        return max(0, $height - self::ROW_GAP);
+        return $headings;
+    }
+
+    /**
+     * Alçada de les caixes perquè els partits omplin tot l'espai, entre el mínim i el màxim.
+     *
+     * @param  list<PosterEntry>  $entries
+     */
+    public static function fillRow(array $entries, bool $grouped, PosterFormat $format): int
+    {
+        $count = count($entries);
+        if ($count === 0) {
+            return self::MAX_FILL_ROW;
+        }
+
+        $headings = self::headings($entries, $grouped);
+        $row = intdiv($format->available() - $headings * self::HEADING - ($count + $headings - 1) * self::ROW_GAP, $count);
+
+        return max(self::MIN_FILL_ROW, min(self::MAX_FILL_ROW, $row));
     }
 
     public function plan(DayPoster $poster): LayoutPlan
     {
         $count = count($poster->entries);
         $grouped = $poster->grouped;
+        $available = $poster->format->available();
         $warnings = [];
 
-        if (self::heightOf($poster->entries, PosterPage::MODE_NORMAL, $grouped) <= self::available()) {
-            $pages = [new PosterPage($poster, $poster->entries, PosterPage::MODE_NORMAL, 1, 1)];
-        } elseif (self::heightOf($poster->entries, PosterPage::MODE_COMPACT, $grouped) <= self::available()) {
-            $pages = [new PosterPage($poster, $poster->entries, PosterPage::MODE_COMPACT, 1, 1)];
+        if ($poster->compress) {
+            $pages = $this->planFilled($poster, $warnings);
+        } elseif (self::heightOf($poster->entries, PosterPage::MODE_NORMAL, $grouped) <= $available) {
+            $pages = [new PosterPage($poster, $poster->entries, PosterPage::MODE_NORMAL, 1, 1, self::NORMAL_ROW)];
+        } elseif (self::heightOf($poster->entries, PosterPage::MODE_COMPACT, $grouped) <= $available) {
+            $pages = [new PosterPage($poster, $poster->entries, PosterPage::MODE_COMPACT, 1, 1, self::COMPACT_ROW)];
             $warnings[] = ['code' => LayoutPlan::WARNING_COMPACT, 'params' => ['count' => $count]];
         } else {
-            $chunks = $this->chunk($poster->entries, $grouped);
+            $chunks = $this->chunk($poster->entries, $grouped, self::COMPACT_ROW, $available);
             $total = count($chunks);
-            $pages = array_map(fn (array $entries, int $i) => new PosterPage($poster, $entries, PosterPage::MODE_COMPACT, $i + 1, $total), $chunks, array_keys($chunks));
+            $pages = array_map(fn (array $entries, int $i) => new PosterPage($poster, $entries, PosterPage::MODE_COMPACT, $i + 1, $total, self::COMPACT_ROW), $chunks, array_keys($chunks));
             $warnings[] = ['code' => LayoutPlan::WARNING_PAGINATED, 'params' => ['count' => $count, 'pages' => $total]];
         }
 
@@ -130,26 +183,30 @@ final class LayoutPlanner
     }
 
     /**
-     * Resultats de la jornada: una sola imatge sempre que sigui possible (la densitat augmenta amb els partits).
+     * Resultats de la jornada: les files s'estiren per omplir la imatge. Només es reparteixen en pàgines si no hi
+     * caben ni a l'alçada mínima (les pàgines s'equilibren perquè totes tinguin un nombre de files semblant).
      */
     public function planResults(ResultsPoster $poster): ResultsLayoutPlan
     {
         $count = count($poster->entries);
+        $capacity = self::resultCapacity($poster->format);
         $warnings = [];
 
-        if ($count <= self::resultCapacity(ResultsPage::MODE_NORMAL)) {
-            $pages = [new ResultsPage($poster, $poster->entries, ResultsPage::MODE_NORMAL, 1, 1)];
-        } elseif ($count <= self::resultCapacity(ResultsPage::MODE_COMPACT)) {
-            $pages = [new ResultsPage($poster, $poster->entries, ResultsPage::MODE_COMPACT, 1, 1)];
-            $warnings[] = ['code' => LayoutPlan::WARNING_COMPACT, 'params' => ['count' => $count]];
-        } elseif ($count <= self::resultCapacity(ResultsPage::MODE_DENSE)) {
-            $pages = [new ResultsPage($poster, $poster->entries, ResultsPage::MODE_DENSE, 1, 1)];
-            $warnings[] = ['code' => LayoutPlan::WARNING_COMPACT, 'params' => ['count' => $count]];
+        if ($count <= $capacity) {
+            $chunks = [$poster->entries];
         } else {
-            $chunks = array_chunk($poster->entries, self::resultCapacity(ResultsPage::MODE_DENSE));
-            $total = count($chunks);
-            $pages = array_map(fn (array $entries, int $i) => new ResultsPage($poster, $entries, ResultsPage::MODE_DENSE, $i + 1, $total), $chunks, array_keys($chunks));
-            $warnings[] = ['code' => LayoutPlan::WARNING_PAGINATED, 'params' => ['count' => $count, 'pages' => $total]];
+            $chunks = array_chunk($poster->entries, (int) ceil($count / ceil($count / $capacity)));
+            $warnings[] = ['code' => LayoutPlan::WARNING_PAGINATED, 'params' => ['count' => $count, 'pages' => count($chunks)]];
+        }
+
+        $total = count($chunks);
+        $pages = [];
+        foreach ($chunks as $index => $entries) {
+            $pages[] = new ResultsPage($poster, $entries, $this->resultRow(count($entries), $poster->format), $index + 1, $total);
+        }
+
+        if ($pages !== [] && $pages[0]->rowHeight < self::RESULT_COMFORT_ROW && $total === 1) {
+            $warnings[] = ['code' => LayoutPlan::WARNING_COMPACT, 'params' => ['count' => $count]];
         }
 
         foreach ($poster->entries as $entry) {
@@ -162,14 +219,58 @@ final class LayoutPlanner
         return new ResultsLayoutPlan($pages, $warnings);
     }
 
+    /** Alçada de les files de resultats perquè en omplin tot l'espai. */
+    public function resultRow(int $count, PosterFormat $format): int
+    {
+        if ($count === 0) {
+            return self::RESULT_MAX_ROW;
+        }
+
+        $row = intdiv($format->available() - ($count - 1) * self::RESULT_GAP, $count);
+
+        return max(self::RESULT_MIN_ROW, min(self::RESULT_MAX_ROW, $row));
+    }
+
     /**
-     * Reparteix els partits en pàgines compactes segons l'alçada real (un grup que continua a la pàgina següent
-     * hi repeteix el títol).
+     * Mode comprimit: una sola pàgina amb les files estirades; si no hi caben ni a l'alçada mínima, diverses
+     * pàgines (cadascuna estirada pel seu compte).
+     *
+     * @param  list<array{code: string, params: array<string, int|string>}>  $warnings
+     * @return list<PosterPage>
+     */
+    private function planFilled(DayPoster $poster, array &$warnings): array
+    {
+        $available = $poster->format->available();
+        $count = count($poster->entries);
+
+        if (self::heightWithRow($poster->entries, self::MIN_FILL_ROW, $poster->grouped) <= $available) {
+            $chunks = [$poster->entries];
+        } else {
+            $chunks = $this->chunk($poster->entries, $poster->grouped, self::MIN_FILL_ROW, $available);
+            $warnings[] = ['code' => LayoutPlan::WARNING_PAGINATED, 'params' => ['count' => $count, 'pages' => count($chunks)]];
+        }
+
+        $total = count($chunks);
+        $pages = [];
+        foreach ($chunks as $index => $entries) {
+            $pages[] = new PosterPage($poster, $entries, PosterPage::MODE_FILL, $index + 1, $total, self::fillRow($entries, $poster->grouped, $poster->format));
+        }
+
+        if ($total === 1 && $pages[0]->rowHeight < self::COMPACT_ROW) {
+            $warnings[] = ['code' => LayoutPlan::WARNING_COMPACT, 'params' => ['count' => $count]];
+        }
+
+        return $pages;
+    }
+
+    /**
+     * Reparteix els partits en pàgines segons l'alçada real a una alçada de fila donada (un grup que continua a la
+     * pàgina següent hi repeteix el títol).
      *
      * @param  list<PosterEntry>  $entries
      * @return list<list<PosterEntry>>
      */
-    private function chunk(array $entries, bool $grouped): array
+    private function chunk(array $entries, bool $grouped, int $row, int $available): array
     {
         $pages = [];
         $current = [];
@@ -177,7 +278,7 @@ final class LayoutPlanner
         foreach ($entries as $entry) {
             $candidate = [...$current, $entry];
 
-            if ($current !== [] && self::heightOf($candidate, PosterPage::MODE_COMPACT, $grouped) > self::available()) {
+            if ($current !== [] && self::heightWithRow($candidate, $row, $grouped) > $available) {
                 $pages[] = $current;
                 $current = [$entry];
             } else {
