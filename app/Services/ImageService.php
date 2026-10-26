@@ -110,7 +110,7 @@ class ImageService
     /**
      * Pòster amb els resultats dels partits acabats de la jornada (en l'ordre dels equips del club).
      */
-    public function resultsPoster(Matchday $matchday): ResultsPoster
+    public function resultsPoster(Matchday $matchday, PosterFormat $format = PosterFormat::Post): ResultsPoster
     {
         $matches = GameMatch::query()->with('team')
             ->where('matchday_id', $matchday->id)
@@ -131,7 +131,7 @@ class ImageService
         $first = CatalanDate::date($matchday->starts_on);
         $last = CatalanDate::date($matchday->ends_on);
 
-        return new ResultsPoster('Resultats', $first === $last ? $first : "{$first} – {$last}", $matchday->label ?? '', $entries, PosterFormat::Post);
+        return new ResultsPoster('Resultats', $first === $last ? $first : "{$first} – {$last}", $matchday->label ?? '', $entries, $format);
     }
 
     /**
@@ -183,11 +183,13 @@ class ImageService
     /**
      * Genera la imatge amb el resum dels resultats de la jornada.
      *
+     * @param  array{format?: string}  $options
      * @return Collection<int, GeneratedImage>
      */
-    public function generateResults(Matchday $matchday, ?int $userId = null): Collection
+    public function generateResults(Matchday $matchday, ?int $userId = null, array $options = []): Collection
     {
-        $poster = $this->resultsPoster($matchday);
+        $format = PosterFormat::tryFrom((string) ($options['format'] ?? '')) ?? PosterFormat::Post;
+        $poster = $this->resultsPoster($matchday, $format);
 
         if ($poster->entries === []) {
             throw ValidationException::withMessages(['matchday' => __('images.no_results')]);
@@ -208,10 +210,10 @@ class ImageService
 
         $this->persist($rendered, [
             'kind' => GeneratedImage::KIND_RESULTS, 'matchday_id' => $matchday->id, 'batch_id' => $batch,
-            'schedule_id' => null, 'schedule_version_id' => null, 'options' => null, 'created_by' => $userId,
+            'schedule_id' => null, 'schedule_version_id' => null, 'options' => ['format' => $format->value], 'created_by' => $userId,
         ]);
 
-        $this->audit->log('images.results_generated', $matchday, null, ['batch' => $batch, 'images' => count($rendered), 'results' => count($poster->entries)], $userId);
+        $this->audit->log('images.results_generated', $matchday, null, ['batch' => $batch, 'images' => count($rendered), 'results' => count($poster->entries), 'format' => $format->value], $userId);
 
         return $this->batchImages($batch);
     }

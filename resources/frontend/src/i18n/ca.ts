@@ -229,7 +229,7 @@ export const ca = {
                     intro: 'Un cop confirmada la programació, es poden generar les imatges per publicar a les xarxes.',
                     items: [
                         'Es genera una imatge per a cada dia, amb els partits a casa i a fora. El format pot ser història (1080 × 1920, el per defecte) o publicació d’Instagram (1080 × 1350).',
-                        'Opció «Comprimeix tots els partits d’un dia en una sola imatge»: les caixes dels partits s’estiren per omplir tota la imatge i són més baixes com més partits hi ha. Si en un dia hi ha tants partits que no hi caben ni així, es reparteixen en diverses imatges.',
+                        'Opció «Comprimeix tots els partits d’un dia en una sola imatge»: les caixes dels partits s’estiren per omplir tota la imatge i són més baixes com més partits hi ha. Si en un dia hi ha tants partits que no hi caben ni així, es reparteixen en diverses imatges. Sempre que no hi càpiguen tots en una sola imatge, els partits a casa van a una imatge i els partits a fora a una altra.',
                         'Opció «Separa els partits a casa i a fora»: a cada imatge, els partits a casa i els de fora van en dos grups, cadascun amb un títol petit.',
                         'Si hi ha molts partits, la imatge es fa més compacta o es reparteix en diverses pàgines.',
                         'Els partits cancel·lats i els que has marcat perquè no surtin a la imatge no hi apareixen.',
@@ -244,7 +244,7 @@ export const ca = {
                     intro: 'Amb els resultats dels partits es pot fer una imatge amb el resum de la jornada.',
                     items: [
                         'Indica el resultat a la fitxa de cada partit quan hagi acabat (gols de l’equip i del rival). Cal posar els dos números.',
-                        'A Partits, el botó «Imatge de resultats» genera una sola imatge, en format de publicació d’Instagram (1080 × 1350), amb tots els partits que ja tenen resultat, ordenats com els equips del club.',
+                        'A Partits, el botó «Imatge de resultats» genera una sola imatge amb tots els partits que ja tenen resultat, ordenats com els equips del club. Pots triar el format: publicació d’Instagram (1080 × 1350, per defecte) o història (1080 × 1920).',
                         'Les files dels resultats s’estiren per omplir tota la imatge: amb pocs resultats són més altes i amb molts més baixes. Només si no hi caben ni a l’alçada mínima es reparteixen en diverses imatges, equilibrades.',
                         'Els partits sense resultat, els cancel·lats i els que no surten a la imatge no hi apareixen.',
                         'La imatge de resultats també es conserva a l’històric d’imatges.',

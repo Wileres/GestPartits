@@ -60,10 +60,41 @@ class LayoutPlannerTest extends TestCase
     {
         $plan = (new LayoutPlanner)->plan($this->poster(23));
 
-        $this->assertCount(3, $plan->pages);
-        $this->assertSame([10, 10, 3], array_map(fn (PosterPage $p) => count($p->entries), $plan->pages));
-        $this->assertSame([1, 2, 3], array_map(fn (PosterPage $p) => $p->page, $plan->pages));
-        $this->assertSame(['code' => LayoutPlan::WARNING_PAGINATED, 'params' => ['count' => 23, 'pages' => 3]], $plan->warnings[0]);
+        // 12 a casa (10 + 2) i 11 a fora (10 + 1): mai es barregen a la mateixa imatge.
+        $this->assertCount(4, $plan->pages);
+        $this->assertSame([10, 2, 10, 1], array_map(fn (PosterPage $p) => count($p->entries), $plan->pages));
+        $this->assertSame([1, 2, 3, 4], array_map(fn (PosterPage $p) => $p->page, $plan->pages));
+        $this->assertSame(['code' => LayoutPlan::WARNING_PAGINATED, 'params' => ['count' => 23, 'pages' => 4]], $plan->warnings[0]);
+    }
+
+    public function test_when_they_do_not_fit_home_and_away_matches_go_to_different_images(): void
+    {
+        $entries = [...array_map(fn ($i) => new PosterEntry('10:00', null, 'A', 'B', $i % 2 === 0, null), range(1, 12))];
+        $plan = (new LayoutPlanner)->plan(new DayPoster('2026-10-17', 'Dissabte', '17/10/2026', '', $entries));
+
+        $this->assertCount(2, $plan->pages);
+        $this->assertSame([true, false], array_map(fn (PosterPage $p) => $p->entries[0]->home, $plan->pages));
+        foreach ($plan->pages as $page) {
+            $this->assertCount(1, array_unique(array_map(fn ($e) => $e->home, $page->entries)));
+        }
+    }
+
+    public function test_when_they_fit_in_one_image_home_and_away_stay_together(): void
+    {
+        $plan = (new LayoutPlanner)->plan($this->poster(8));
+
+        $this->assertCount(1, $plan->pages);
+    }
+
+    public function test_results_in_story_format_stretch_to_the_taller_image(): void
+    {
+        $planner = new LayoutPlanner;
+
+        $this->assertSame(LayoutPlanner::RESULT_MAX_ROW_STORY, $planner->resultRow(3, PosterFormat::Story));
+        $this->assertSame(LayoutPlanner::RESULT_MAX_ROW, $planner->resultRow(3, PosterFormat::Post));
+        $plan = $planner->planResults($this->results(13, format: PosterFormat::Story));
+        $this->assertCount(1, $plan->pages);
+        $this->assertSame(PosterFormat::Story, $plan->pages[0]->poster->format);
     }
 
     public function test_rows_fit_inside_the_image(): void

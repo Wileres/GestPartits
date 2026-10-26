@@ -187,7 +187,7 @@ export const imagesApi = {
 
 export const resultImagesApi = {
     get: (matchdayId: number) => api.get<Resource<ResultImagesState>>(`/matchdays/${matchdayId}/result-images`).then((r) => r.data),
-    generate: (matchdayId: number) => api.post<Resource<ResultImagesState>>(`/matchdays/${matchdayId}/result-images`).then((r) => r.data),
+    generate: (matchdayId: number, format: ImageFormat = 'post') => api.post<Resource<ResultImagesState>>(`/matchdays/${matchdayId}/result-images`, { format }).then((r) => r.data),
 };
 
 export const imageHistoryApi = {

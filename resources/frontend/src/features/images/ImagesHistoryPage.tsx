@@ -23,6 +23,9 @@ const filters: { value: ImageKind | null; label: string }[] = [
 function optionsLabel(batch: ImageBatch): string {
     const options = batch.options;
 
+    // Els resultats antics (sense opcions) eren sempre publicacions.
+    if (batch.kind === 'results') return t(`images.formats.${options?.format === 'story' ? 'story' : 'post'}`);
+
     return [
         t(`images.formats.${options?.format === 'post' ? 'post' : 'story'}`),
         options?.compress === true ? t('images.optionCompressed') : null,
@@ -70,7 +73,7 @@ export function ImagesHistoryPage() {
                                         </p>
                                         <p className="text-xs text-muted-foreground">
                                             {batch.created_by === null ? t('images.generatedOn', { date: formatDateTime(batch.created_at) }) : t('images.generatedBy', { name: batch.created_by, date: formatDateTime(batch.created_at) })}
-                                            {batch.kind === 'schedule' && ` · ${optionsLabel(batch)}`}
+                                            {` · ${optionsLabel(batch)}`}
                                         </p>
                                     </div>
                                     <Button variant="outline" size="sm" onClick={() => setToDelete({ batch, imageId: null })}>

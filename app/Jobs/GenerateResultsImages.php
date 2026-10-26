@@ -22,7 +22,7 @@ class GenerateResultsImages implements ShouldBeUnique, ShouldQueue
 
     public int $timeout = 180;
 
-    public function __construct(public readonly int $matchdayId, public readonly ?int $userId = null) {}
+    public function __construct(public readonly int $matchdayId, public readonly ?int $userId = null, public readonly array $options = []) {}
 
     public function uniqueId(): string
     {
@@ -34,7 +34,7 @@ class GenerateResultsImages implements ShouldBeUnique, ShouldQueue
         $matchday = Matchday::query()->findOrFail($this->matchdayId);
 
         try {
-            $images->generateResults($matchday, $this->userId);
+            $images->generateResults($matchday, $this->userId, $this->options);
         } finally {
             Cache::forget(ImageService::resultsPendingKey($matchday));
         }

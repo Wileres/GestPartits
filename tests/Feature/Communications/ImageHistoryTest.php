@@ -245,6 +245,19 @@ class ImageHistoryTest extends TestCase
         $this->spa()->getJson("/api/matchdays/{$matchday->id}/result-images")->assertOk()->assertJsonCount(1, 'data.images')->assertJsonPath('data.images.0.kind', 'results');
     }
 
+    public function test_results_image_can_be_generated_as_a_story(): void
+    {
+        $matchday = $this->weekend();
+        $this->matchesFor($matchday)['alevi']->update(['score_team' => 3, 'score_opponent' => 1]);
+
+        $this->spa()->postJson("/api/matchdays/{$matchday->id}/result-images", ['format' => 'bogus'])->assertUnprocessable();
+        $this->spa()->postJson("/api/matchdays/{$matchday->id}/result-images", ['format' => 'story'])->assertStatus(202);
+
+        $image = GeneratedImage::query()->firstOrFail();
+        $this->assertSame([1080, 1920], [$image->width, $image->height]);
+        $this->assertSame('story', $image->options['format']);
+    }
+
     public function test_history_and_deletion_require_login(): void
     {
         $this->app['auth']->forgetGuards();

@@ -58,6 +58,9 @@ final class LayoutPlanner
 
     public const RESULT_MAX_ROW = 130;
 
+    /** En format història hi ha més alçada: les files poden créixer més abans de deixar espai lliure. */
+    public const RESULT_MAX_ROW_STORY = 190;
+
     /** Per sota d'aquesta alçada s'avisa que s'ha fet servir un disseny dens. */
     public const RESULT_COMFORT_ROW = 80;
 
@@ -228,7 +231,9 @@ final class LayoutPlanner
 
         $row = intdiv($format->available() - ($count - 1) * self::RESULT_GAP, $count);
 
-        return max(self::RESULT_MIN_ROW, min(self::RESULT_MAX_ROW, $row));
+        $max = $format === PosterFormat::Story ? self::RESULT_MAX_ROW_STORY : self::RESULT_MAX_ROW;
+
+        return max(self::RESULT_MIN_ROW, min($max, $row));
     }
 
     /**
@@ -264,14 +269,22 @@ final class LayoutPlanner
     }
 
     /**
-     * Reparteix els partits en pàgines segons l'alçada real a una alçada de fila donada (un grup que continua a la
-     * pàgina següent hi repeteix el títol).
+     * Reparteix els partits en pàgines segons l'alçada real a una alçada de fila donada. Els partits de casa i els de
+     * fora no es barregen a la mateixa pàgina (un grup que continua a la pàgina següent hi repeteix el títol).
      *
      * @param  list<PosterEntry>  $entries
      * @return list<list<PosterEntry>>
      */
     private function chunk(array $entries, bool $grouped, int $row, int $available): array
     {
+        // Si no hi caben tots, els de casa i els de fora van a imatges diferents.
+        $home = array_values(array_filter($entries, fn (PosterEntry $e) => $e->home));
+        $away = array_values(array_filter($entries, fn (PosterEntry $e) => ! $e->home));
+
+        if ($home !== [] && $away !== []) {
+            return [...$this->chunk($home, $grouped, $row, $available), ...$this->chunk($away, $grouped, $row, $available)];
+        }
+
         $pages = [];
         $current = [];
 

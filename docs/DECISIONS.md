@@ -83,3 +83,8 @@ Formato: `D-NNN · fecha · estado` (Propuesta / Aceptada / Sustituida). Detalle
 | D-077 | 2026-10-27 | Aceptada | Opción «comprimir»: todos los partidos de un día en una sola imagen con cajas de altura proporcional al número de partidos (mínimo 64 px, máximo 190 px; resultados 50–130 px). Solo se pagina si no caben a la altura mínima, con páginas equilibradas | Petición del club |
 | D-078 | 2026-10-27 | Aceptada | Las medidas del texto de cada fila salen de `RowMetrics` según la altura de la caja (completa, media o apretada, que quita instalación y convocatoria y pone equipo y rival en una línea). Chromium y GD usan las mismas | Texto legible y coherente entre renderizadores |
 
+
+## D-079 — Pàgines per a casa / a fora i format de la imatge de resultats (2026-10-27)
+
+- Quan els partits d'un dia no caben en una sola imatge, es reparteixen primer en **casa** i **fora** (mai es barregen a la mateixa imatge) i només després es pagina cada grup si cal.
+- La imatge de resultats admet `format` (`post` per defecte, `story`). En història les files poden créixer fins a 190 px (`RESULT_MAX_ROW_STORY`). El format es desa a `options` del lot i es mostra a l'històric.

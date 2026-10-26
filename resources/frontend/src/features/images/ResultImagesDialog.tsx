@@ -3,7 +3,7 @@ import { ImageIcon, Loader2, RefreshCw, TriangleAlert } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { toast } from 'sonner';
-import { resultImagesApi, type GeneratedImage } from '@/api/communications';
+import { resultImagesApi, type GeneratedImage, type ImageFormat } from '@/api/communications';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -19,6 +19,7 @@ import { IMAGE_HISTORY_KEY, resultImagesKey, useDeleteImages } from './useImages
 export function ResultImagesDialog({ matchdayId, open, onClose }: { matchdayId: number; open: boolean; onClose: () => void }) {
     const queryClient = useQueryClient();
     const [toDelete, setToDelete] = useState<GeneratedImage | null>(null);
+    const [format, setFormat] = useState<ImageFormat>('post');
     const state = useQuery({
         queryKey: resultImagesKey(matchdayId),
         queryFn: () => resultImagesApi.get(matchdayId),
@@ -26,7 +27,7 @@ export function ResultImagesDialog({ matchdayId, open, onClose }: { matchdayId: 
         refetchInterval: (query) => (query.state.data?.generating === true ? 2000 : false),
     });
     const generate = useMutation({
-        mutationFn: () => resultImagesApi.generate(matchdayId),
+        mutationFn: () => resultImagesApi.generate(matchdayId, format),
         onSuccess: (data) => {
             queryClient.setQueryData(resultImagesKey(matchdayId), data);
             void queryClient.invalidateQueries({ queryKey: IMAGE_HISTORY_KEY });
@@ -56,6 +57,18 @@ export function ResultImagesDialog({ matchdayId, open, onClose }: { matchdayId: 
                         </p>
                     )}
                     {count > 0 && <p className="text-sm">{count === 1 ? t('images.resultsCountOne') : t('images.resultsCount', { count })}</p>}
+
+                    <div role="radiogroup" aria-label={t('images.format')} className="grid gap-2 sm:grid-cols-2">
+                        {(['post', 'story'] as const).map((value) => (
+                            <label
+                                key={value}
+                                className="flex cursor-pointer items-center justify-center rounded-md border px-3 py-2 text-center text-sm has-checked:border-primary has-checked:bg-secondary has-checked:text-primary"
+                            >
+                                <input type="radio" name="result-image-format" className="sr-only" checked={format === value} onChange={() => setFormat(value)} />
+                                {t(`images.formats.${value}`)}
+                            </label>
+                        ))}
+                    </div>
 
                     {generating && (
                         <p className="flex items-center gap-2 text-sm text-primary" role="status">

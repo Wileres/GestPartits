@@ -71,11 +71,13 @@ class ImageController extends Controller
     public function generateResults(Request $request, Matchday $matchday): JsonResponse
     {
         $this->authorize('viewAny', GeneratedImage::class);
+        $options = $request->validate(['format' => ['sometimes', Rule::enum(PosterFormat::class)]]);
+        $format = PosterFormat::tryFrom((string) ($options['format'] ?? '')) ?? PosterFormat::Post;
         // Falla (422) si encara no hi ha cap resultat.
-        abort_if($this->images->resultsPoster($matchday)->entries === [], 422, __('images.no_results'));
+        abort_if($this->images->resultsPoster($matchday, $format)->entries === [], 422, __('images.no_results'));
 
         Cache::put(ImageService::resultsPendingKey($matchday), true, now()->addMinutes(10));
-        GenerateResultsImages::dispatch($matchday->id, $request->user()->id);
+        GenerateResultsImages::dispatch($matchday->id, $request->user()->id, ['format' => $format->value]);
 
         return $this->resultsState($matchday, 202);
     }
