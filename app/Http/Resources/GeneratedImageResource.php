@@ -19,6 +19,8 @@ class GeneratedImageResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'kind' => $this->kind,
+            'batch_id' => $this->batch_id,
             'day' => $this->day->toDateString(),
             'weekday' => CatalanDate::weekday($this->day),
             'page' => $this->page,
@@ -27,7 +29,7 @@ class GeneratedImageResource extends JsonResource
             'height' => $this->height,
             'renderer' => $this->renderer,
             'url' => url("/api/generated-images/{$this->id}").'?v='.substr($this->checksum, 0, 12),
-            'filename' => sprintf('jornada-%s-%d.png', $this->day->toDateString(), $this->page),
+            'filename' => $this->downloadName(),
             'warnings' => array_map(fn (array $w) => __('images.warnings.'.$w['code'], $w['params']), $this->warnings ?? []),
             'created_at' => $this->created_at?->toIso8601String(),
         ];

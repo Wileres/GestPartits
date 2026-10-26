@@ -23,6 +23,10 @@
 | 19 | Se rechazan los tipos de archivo no permitidos | `ClubLogoTest` (escudo del club: SVG, GIF, PHP disfrazado de PNG, extensión `.php` y tamaño rechazados) |
 | 20 | La regeneración respeta los partidos bloqueados | `ProposalEngineTest::test_regeneration_respects_locked_matches`; `ScheduleApiTest::test_manual_move_locks_the_match_and_regeneration_respects_it` |
 | 21 | Imágenes de sábado y domingo | `ImageGenerationTest::test_saturday_and_sunday_images_are_generated_at_1080x1920`, `…test_chromium_renders_a_real_1080x1920_image`, `LayoutPlannerTest` |
+| 23 | Resultado de un partido (gols, validación, sin tocar la programación confirmada) | `MatchResultTest` |
+| 24 | Histórico de imágenes: se conservan, se descargan y se borran (con protección de las enviadas) | `ImageHistoryTest`; frontend `images.test.tsx` |
+| 25 | Imagen de resultados de la jornada en una sola imagen y agrupación casa/fuera | `ImageHistoryTest`, `LayoutPlannerTest` (alturas, paginación y densidad) |
+| 26 | Editor de imágenes para redes sociales (encuadre, ajustes, difuminado negro y resultado azul) | frontend `social.test.ts`, `socialPage.test.tsx` |
 | 22 | Textos visibles en catalán | `CatalanTranslationsTest`; frontend `i18n.test.ts` (sin inglés ni castellano habituales) y `noHardcodedText.test.ts` (sin textos JSX escritos directamente) |
 
 Otras pruebas relevantes: determinismo e idempotencia de la propuesta (`ProposalEngineTest`), concurrencia `409` (`ScheduleApiTest`, `MatchApiTest`), CSRF (`CsrfProtectionTest`), cabeceras y CSP (`SecurityHeadersTest`), fijación de sesión, HSTS, registros sin secretos, límite de peticiones y auditoría (`HardeningTest`), y que todas las rutas exigen sesión (`RouteProtectionTest`).

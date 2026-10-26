@@ -22,7 +22,10 @@ class GenerateScheduleImages implements ShouldBeUnique, ShouldQueue
 
     public int $timeout = 180;
 
-    public function __construct(public readonly int $scheduleId, public readonly ?int $userId = null) {}
+    /**
+     * @param  array{group_home_away?: bool}  $options
+     */
+    public function __construct(public readonly int $scheduleId, public readonly ?int $userId = null, public readonly array $options = []) {}
 
     public function uniqueId(): string
     {
@@ -34,7 +37,7 @@ class GenerateScheduleImages implements ShouldBeUnique, ShouldQueue
         $schedule = Schedule::query()->with('matchday')->findOrFail($this->scheduleId);
 
         try {
-            $images->generate($schedule, $this->userId);
+            $images->generate($schedule, $this->userId, $this->options);
         } finally {
             Cache::forget(ImageService::pendingKey($schedule));
         }

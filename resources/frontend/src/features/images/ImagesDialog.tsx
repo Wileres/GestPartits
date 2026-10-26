@@ -1,21 +1,25 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Download, ImageIcon, Loader2, RefreshCw, TriangleAlert } from 'lucide-react';
+import { ImageIcon, Loader2, RefreshCw, TriangleAlert } from 'lucide-react';
+import { useState } from 'react';
+import { Link } from 'react-router';
 import { toast } from 'sonner';
-import { imagesApi } from '@/api/communications';
+import { imagesApi, type GeneratedImage } from '@/api/communications';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { t } from '@/i18n/ca';
-import { formatWeekdayDate } from '@/lib/dates';
+import { formatDateTime, t } from '@/i18n/ca';
 import { errorMessage } from '@/lib/errors';
-
-const imagesKey = (scheduleId: number) => ['schedules', scheduleId, 'images'] as const;
+import { ImageGrid } from './ImageGrid';
+import { IMAGE_HISTORY_KEY, imagesKey, useDeleteImages } from './useImages';
 
 /**
  * Previsualització i descàrrega de les imatges (1080 × 1920) de la jornada confirmada.
- * Mentre es generen en segon pla, es consulta l'estat cada dos segons.
+ * Mentre es generen en segon pla, es consulta l'estat cada dos segons. Cada generació es conserva a l'històric.
  */
 export function ImagesDialog({ scheduleId, open, onClose }: { scheduleId: number; open: boolean; onClose: () => void }) {
     const queryClient = useQueryClient();
+    const [grouped, setGrouped] = useState(false);
+    const [toDelete, setToDelete] = useState<GeneratedImage | 'batch' | null>(null);
     const state = useQuery({
         queryKey: imagesKey(scheduleId),
         queryFn: () => imagesApi.get(scheduleId),
@@ -23,84 +27,111 @@ export function ImagesDialog({ scheduleId, open, onClose }: { scheduleId: number
         refetchInterval: (query) => (query.state.data?.generating === true ? 2000 : false),
     });
     const generate = useMutation({
-        mutationFn: () => imagesApi.generate(scheduleId),
+        mutationFn: () => imagesApi.generate(scheduleId, { group_home_away: grouped }),
         onSuccess: (data) => {
             queryClient.setQueryData(imagesKey(scheduleId), data);
+            void queryClient.invalidateQueries({ queryKey: IMAGE_HISTORY_KEY });
             if (!data.generating) toast.success(t('images.generated'));
         },
         onError: (error) => toast.error(errorMessage(error)),
     });
+    const { removeImage, removeBatch } = useDeleteImages(() => setToDelete(null));
 
     const images = state.data?.images ?? [];
     const generating = state.data?.generating === true || generate.isPending;
+    const createdAt = images[0]?.created_at ?? null;
 
     return (
-        <Dialog open={open} onOpenChange={(value) => !value && onClose()}>
-            <DialogContent className="max-h-[92svh] overflow-y-auto sm:max-w-4xl">
-                <DialogHeader>
-                    <DialogTitle>{t('images.title')}</DialogTitle>
-                    <DialogDescription>{t('images.subtitle')}</DialogDescription>
-                </DialogHeader>
+        <>
+            <Dialog open={open} onOpenChange={(value) => !value && onClose()}>
+                <DialogContent className="max-h-[92svh] overflow-y-auto sm:max-w-4xl">
+                    <DialogHeader>
+                        <DialogTitle>{t('images.title')}</DialogTitle>
+                        <DialogDescription>{t('images.subtitle')}</DialogDescription>
+                    </DialogHeader>
 
-                {generating && (
-                    <p className="flex items-center gap-2 text-sm text-primary" role="status">
-                        <Loader2 className="size-4 animate-spin" aria-hidden />
-                        {t('images.generating')}
-                    </p>
-                )}
+                    <fieldset className="rounded-lg border p-3">
+                        <legend className="px-1 text-sm font-medium">{t('images.options')}</legend>
+                        <label className="flex items-start gap-2 text-sm">
+                            <input type="checkbox" className="mt-0.5 size-4 accent-primary" checked={grouped} onChange={(e) => setGrouped(e.target.checked)} />
+                            <span>
+                                {t('images.groupHomeAway')}
+                                <span className="block text-xs text-muted-foreground">{t('images.groupHomeAwayHelp')}</span>
+                            </span>
+                        </label>
+                    </fieldset>
 
-                {!generating && images.length === 0 && (
-                    <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed py-10 text-center text-sm text-muted-foreground">
-                        <ImageIcon className="size-8" aria-hidden />
-                        {t('images.none')}
-                    </div>
-                )}
+                    {generating && (
+                        <p className="flex items-center gap-2 text-sm text-primary" role="status">
+                            <Loader2 className="size-4 animate-spin" aria-hidden />
+                            {t('images.generating')}
+                        </p>
+                    )}
 
-                {images.some((image) => image.warnings.length > 0) && (
-                    <ul className="grid gap-1 rounded-md bg-status-warning-soft p-3 text-sm text-status-warning">
-                        {images.flatMap((image) =>
-                            image.warnings.map((warning) => (
-                                <li key={`${image.id}-${warning}`} className="flex gap-2">
-                                    <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
-                                    <span>
-                                        <span className="capitalize">{image.weekday}</span>: {warning}
-                                    </span>
-                                </li>
-                            )),
-                        )}
-                    </ul>
-                )}
+                    {!generating && images.length === 0 && (
+                        <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed py-10 text-center text-sm text-muted-foreground">
+                            <ImageIcon className="size-8" aria-hidden />
+                            {t('images.none')}
+                        </div>
+                    )}
 
-                <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-                    {images.map((image) => (
-                        <li key={image.id} className="grid gap-2">
-                            <a href={image.url} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-lg border shadow-sm">
-                                <img src={image.url} alt={t('images.preview', { day: formatWeekdayDate(image.day) })} className="aspect-[9/16] w-full bg-muted object-cover" loading="lazy" />
-                            </a>
-                            <p className="text-xs font-medium capitalize">
-                                {formatWeekdayDate(image.day)}
-                                {image.total_pages > 1 && <span className="block font-normal text-muted-foreground normal-case">{t('images.page', { page: image.page, total: image.total_pages })}</span>}
-                            </p>
-                            <Button asChild variant="outline" size="sm">
-                                <a href={image.url} download={image.filename}>
-                                    <Download aria-hidden />
-                                    {t('images.download')}
-                                </a>
+                    {images.some((image) => image.warnings.length > 0) && (
+                        <ul className="grid gap-1 rounded-md bg-status-warning-soft p-3 text-sm text-status-warning">
+                            {images.flatMap((image) =>
+                                image.warnings.map((warning) => (
+                                    <li key={`${image.id}-${warning}`} className="flex gap-2">
+                                        <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
+                                        <span>
+                                            <span className="capitalize">{image.weekday}</span>: {warning}
+                                        </span>
+                                    </li>
+                                )),
+                            )}
+                        </ul>
+                    )}
+
+                    {images.length > 0 && (
+                        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+                            <span>{t('images.lastGeneration', { date: formatDateTime(createdAt) })}</span>
+                            <Button variant="ghost" size="xs" onClick={() => setToDelete('batch')}>
+                                {t('images.deleteBatch')}
                             </Button>
-                        </li>
-                    ))}
-                </ul>
+                        </div>
+                    )}
 
-                <DialogFooter>
-                    <Button variant="outline" onClick={onClose}>
-                        {t('common.close')}
-                    </Button>
-                    <Button onClick={() => generate.mutate()} disabled={generating}>
-                        <RefreshCw aria-hidden />
-                        {images.length === 0 ? t('images.generate') : t('images.regenerate')}
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
+                    <ImageGrid images={images} onDelete={(image) => setToDelete(image)} />
+
+                    <p className="text-xs text-muted-foreground">
+                        {t('images.historyHelp')}{' '}
+                        <Link to="/imatges" className="font-medium text-primary underline underline-offset-2" onClick={onClose}>
+                            {t('images.history')}
+                        </Link>
+                    </p>
+
+                    <DialogFooter>
+                        <Button variant="outline" onClick={onClose}>
+                            {t('common.close')}
+                        </Button>
+                        <Button onClick={() => generate.mutate()} disabled={generating}>
+                            <RefreshCw aria-hidden />
+                            {images.length === 0 ? t('images.generate') : t('images.regenerate')}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <ConfirmDialog
+                open={toDelete !== null}
+                title={toDelete === 'batch' ? t('images.deleteBatchTitle') : t('images.deleteImageTitle')}
+                description={toDelete === 'batch' ? t('images.deleteBatchHelp') : t('images.deleteImageHelp')}
+                confirmLabel={t('images.deleteImage')}
+                pending={removeImage.isPending || removeBatch.isPending}
+                onCancel={() => setToDelete(null)}
+                onConfirm={() => {
+                    if (toDelete === 'batch') removeBatch.mutate(images[0]?.batch_id ?? '');
+                    else if (toDelete !== null) removeImage.mutate(toDelete.id);
+                }}
+            />
+        </>
     );
 }

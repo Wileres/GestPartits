@@ -13,7 +13,6 @@ use App\Enums\WhatsAppProviderKey;
 use App\Infrastructure\WhatsApp\WhatsAppProviderRegistry;
 use App\Jobs\SendWhatsAppMessage;
 use App\Models\GameMatch;
-use App\Models\GeneratedImage;
 use App\Models\Schedule;
 use App\Models\WhatsAppDestination;
 use App\Models\WhatsAppMessage;
@@ -378,7 +377,8 @@ class NotificationService
     {
         $message->attachments()->delete();
 
-        foreach (GeneratedImage::query()->where('schedule_version_id', $schedule->confirmed_version_id)->orderBy('day')->orderBy('page')->get() as $index => $image) {
+        // Només les imatges de l'última generació del calendari (la resta són a l'històric).
+        foreach ($this->images->current($schedule)->values() as $index => $image) {
             WhatsAppMessageAttachment::query()->create(['whatsapp_message_id' => $message->id, 'generated_image_id' => $image->id, 'sort_order' => $index]);
         }
     }

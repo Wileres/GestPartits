@@ -68,6 +68,9 @@ export const existingMatch = {
     notes: null,
     whatsapp_extra: null,
     show_in_image: true,
+    score_team: null,
+    score_opponent: null,
+    has_result: false,
     lock_version: 0,
     updated_at: null,
 };

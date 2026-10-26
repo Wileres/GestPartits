@@ -93,6 +93,9 @@ class MatchRequest extends FormRequest
             'notes' => ['nullable', 'string', 'max:2000'],
             'whatsapp_extra' => ['nullable', 'string', 'max:2000'],
             'show_in_image' => ['sometimes', 'boolean'],
+            // Resultat un cop acabat el partit: tots dos gols o cap.
+            'score_team' => ['nullable', 'integer', 'min:0', 'max:99', 'required_with:score_opponent'],
+            'score_opponent' => ['nullable', 'integer', 'min:0', 'max:99', 'required_with:score_team'],
         ];
     }
 
@@ -109,6 +112,10 @@ class MatchRequest extends FormRequest
 
                 if ($kickoff !== null && $call !== null && Time::toMinutes($call) > Time::toMinutes($kickoff)) {
                     $validator->errors()->add('call_time', __('messages.validation.call_after_kickoff'));
+                }
+
+                if (($this->input('score_team') !== null || $this->input('score_opponent') !== null) && $this->input('status') === MatchStatus::Cancelled->value) {
+                    $validator->errors()->add('score_team', __('messages.validation.result_cancelled'));
                 }
 
                 $areaId = $this->input('field_area_id');
@@ -164,6 +171,8 @@ class MatchRequest extends FormRequest
             'notes' => 'observacions',
             'whatsapp_extra' => 'informació addicional per al WhatsApp',
             'rule_override_reason' => 'motiu de l\'excepció',
+            'score_team' => 'gols de l\'equip',
+            'score_opponent' => 'gols del rival',
         ];
     }
 
@@ -175,6 +184,8 @@ class MatchRequest extends FormRequest
             'match_date.before_or_equal' => 'La data ha de ser dins de la jornada.',
             'match_date.required_with' => 'Cal indicar la data si s\'indica l\'hora.',
             'kickoff_time.required_with' => 'Cal indicar l\'hora del partit per assignar-li un camp.',
+            'score_team.required_with' => 'Indica els gols dels dos equips.',
+            'score_opponent.required_with' => 'Indica els gols dels dos equips.',
             'maps_url.url' => 'L\'enllaç ha de començar per https://.',
         ];
     }

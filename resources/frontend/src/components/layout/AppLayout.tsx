@@ -1,4 +1,4 @@
-import { Ban, BookOpen, CalendarDays, ClipboardList, CalendarRange, Clock, ListChecks, LogOut, Menu, MessageCircle, MessagesSquare, Palette, Shapes, Shield, Trophy, UserRound, Users, X, Zap } from 'lucide-react';
+import { Ban, BookOpen, CalendarDays, Images, Share2, ClipboardList, CalendarRange, Clock, ListChecks, LogOut, Menu, MessageCircle, MessagesSquare, Palette, Shapes, Shield, Trophy, UserRound, Users, X, Zap } from 'lucide-react';
 import { useState, type ComponentType } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router';
 import { toast } from 'sonner';
@@ -26,6 +26,8 @@ const navItems: NavItem[] = [
     { to: '/equips', label: t('nav.teams'), icon: Shield, visible: () => true },
     { to: '/temporades', label: t('nav.seasons'), icon: CalendarRange, visible: () => true },
     { to: '/avisos', label: t('nav.notifications'), icon: MessageCircle, visible: () => true },
+    { to: '/imatges', label: t('nav.images'), icon: Images, visible: () => true },
+    { to: '/xarxes-socials', label: t('nav.social'), icon: Share2, visible: () => true },
     { to: '/configuracio/categories', label: t('nav.categories'), icon: Shapes, visible: isAdmin, group: t('nav.configuration') },
     { to: '/configuracio/franges', label: t('nav.slots'), icon: Clock, visible: isAdmin },
     { to: '/configuracio/bloquejos', label: t('nav.blocks'), icon: Ban, visible: isAdmin },

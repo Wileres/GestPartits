@@ -81,8 +81,12 @@ export interface WhatsAppMessage {
     can_discard: boolean;
 }
 
+export type ImageKind = 'schedule' | 'results';
+
 export interface GeneratedImage {
     id: number;
+    kind: ImageKind;
+    batch_id: string;
     day: string;
     weekday: string;
     page: number;
@@ -99,6 +103,29 @@ export interface GeneratedImage {
 export interface ImagesState {
     generating: boolean;
     confirmed: boolean;
+    images: GeneratedImage[];
+}
+
+export interface ImageOptions {
+    /** Separa els partits a casa i a fora a cada imatge, amb un títol petit per a cada grup. */
+    group_home_away: boolean;
+}
+
+export interface ResultImagesState {
+    generating: boolean;
+    /** Partits de la jornada amb resultat (els que sortiran a la imatge). */
+    results_count: number;
+    images: GeneratedImage[];
+}
+
+/** Una generació: les imatges que es van crear d'un cop. */
+export interface ImageBatch {
+    batch_id: string;
+    kind: ImageKind;
+    matchday: { id: number; display_label: string } | null;
+    options: Partial<ImageOptions> | null;
+    created_at: string | null;
+    created_by: string | null;
     images: GeneratedImage[];
 }
 
@@ -149,7 +176,18 @@ export const messagesApi = {
 
 export const imagesApi = {
     get: (scheduleId: number) => api.get<Resource<ImagesState>>(`/schedules/${scheduleId}/images`).then((r) => r.data),
-    generate: (scheduleId: number) => api.post<Resource<ImagesState>>(`/schedules/${scheduleId}/images`).then((r) => r.data),
+    generate: (scheduleId: number, options: ImageOptions) => api.post<Resource<ImagesState>>(`/schedules/${scheduleId}/images`, options).then((r) => r.data),
+};
+
+export const resultImagesApi = {
+    get: (matchdayId: number) => api.get<Resource<ResultImagesState>>(`/matchdays/${matchdayId}/result-images`).then((r) => r.data),
+    generate: (matchdayId: number) => api.post<Resource<ResultImagesState>>(`/matchdays/${matchdayId}/result-images`).then((r) => r.data),
+};
+
+export const imageHistoryApi = {
+    list: (kind: ImageKind | null) => api.get<Resource<ImageBatch[]>>(kind === null ? '/generated-images' : `/generated-images?kind=${kind}`).then((r) => r.data),
+    remove: (id: number) => api.delete<void>(`/generated-images/${id}`),
+    removeBatch: (batchId: string) => api.delete<void>(`/generated-images/batches/${batchId}`),
 };
 
 export const settingsApi = {

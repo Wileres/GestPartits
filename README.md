@@ -14,8 +14,13 @@ Programació dels partits de futbol del **Joventut Sant Pere Màrtir**: equips, 
 4. **Programació:** «Genera una proposta» col·loca els partits a casa segons les franges, la capacitat del camp (2 partits de futbol 7 alhora, o 1 de futbol 11) i les regles. Després es pot ajustar arrossegant les targetes.
 5. **Confirma la programació:** no es pot confirmar mentre hi hagi conflictes crítics.
 6. **Imatges i avisos:**
-   - Genera les imatges: 1080 × 1920, una per dia.
+   - Genera les imatges: 1080 × 1920, una per dia, amb l'opció de separar els partits a casa i a fora.
+   - Totes les imatges generades es conserven a **Imatges** (històric): es poden baixar i esborrar a mà.
    - Prepara els avisos: es revisen i s'envien només amb una confirmació explícita.
+7. **Resultats i xarxes socials:**
+   - El resultat de cada partit s'indica a la fitxa del partit un cop acabat.
+   - **Partits → Imatge de resultats** genera el resum dels resultats de la jornada en una sola imatge.
+   - **Xarxes socials** és un editor al navegador: una foto (enquadrament, ampliació, gir i ajustos bàsics), el resultat i un difuminat negre, en format de publicació d'Instagram (4:5 o 1:1).
 
 ## Requisits
 
@@ -173,7 +178,6 @@ Tasques programades:
 
 | Hora | Tasca |
 |---|---|
-| Cada dia a les 03:30 | Neteja d'imatges de versions antigues (`IMAGE_KEEP_DAYS`) |
 | Cada dia a les 03:40 | Enllaços de contrasenya caducats |
 | Cada setmana | Treballs fallits de més de 30 dies |
 
@@ -231,7 +235,11 @@ La plataforma oficial de WhatsApp no publica en grups existents. L'aplicació se
 - `chromium` (recomanat): necessita `CHROMIUM_BINARY`, per defecte `/usr/bin/chromium`;
 - `gd`: per a servidors sense Chromium, amb les fonts `GD_FONT_REGULAR` i `GD_FONT_BOLD`.
 
-Les imatges són de 1080 × 1920 i en PNG. Si un dia té més de 8 partits es fa servir el disseny compacte, i amb més de 10 es generen diverses pàgines. L'escut i els colors es canvien a **Configuració → Aparença**.
+Les imatges són de 1080 × 1920 i en PNG. Si un dia té més de 8 partits es fa servir el disseny compacte, i amb més de 10 es generen diverses pàgines (amb els partits separats a casa i a fora, els títols de grup també ocupen alçada i la paginació es calcula amb l'alçada real). La imatge de resultats és una sola imatge fins a 17 resultats (la densitat augmenta amb el nombre de files). L'escut i els colors es canvien a **Configuració → Aparença**.
+
+Cada generació es conserva (taula `generated_images`, fitxers a `storage/app/private/images/{jornada}/{generació}/`) fins que s'esborra manualment des de **Imatges**; ja no hi ha neteja automàtica ni `IMAGE_KEEP_DAYS`. Una imatge adjunta a un avís de WhatsApp que ja s'ha enviat no es pot esborrar. Les còpies de seguretat (`deploy/backup.sh`) inclouen aquests fitxers, de manera que l'històric pot fer créixer l'espai: un parell d'imatges d'uns 0,5 MB per generació.
+
+L'editor de **Xarxes socials** treballa al navegador (llenç): la foto no es puja al servidor. El filtre d'ajustos (brillantor, contrast i saturació) el fa el navegador i en versions antigues de Safari pot no aplicar-se.
 
 ## Usuaris
 

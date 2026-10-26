@@ -87,19 +87,6 @@ class ImageGenerationTest extends TestCase
         $this->get($images[0]['url'])->assertOk()->assertHeader('Content-Type', 'image/png');
     }
 
-    public function test_regenerating_replaces_the_images_of_the_same_version(): void
-    {
-        $matchday = $this->weekend();
-        $this->matchesFor($matchday);
-        $schedule = $this->confirmed($matchday);
-
-        app(ImageService::class)->generate($schedule);
-        app(ImageService::class)->generate($schedule);
-
-        $this->assertSame(2, GeneratedImage::query()->count());
-        $this->assertCount(2, Storage::disk('local')->allFiles('images'));
-    }
-
     public function test_crowded_days_are_split_into_pages(): void
     {
         $matchday = $this->weekend();

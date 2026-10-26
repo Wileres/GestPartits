@@ -1,4 +1,4 @@
-import { CalendarDays, Lightbulb, Pencil, Plus } from 'lucide-react';
+import { CalendarDays, ImageIcon, Lightbulb, Pencil, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import type { QuickEntryRow } from '@/api/matches';
@@ -14,6 +14,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { TimeTextInput } from '@/components/TimeFields';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { ResultImagesDialog } from '@/features/images/ResultImagesDialog';
 import { useTeams } from '@/features/teams/useTeams';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useReferenceData } from '@/hooks/useReferenceData';
@@ -29,10 +30,23 @@ import { useCreateMatches, useHomeAwaySuggestions, useMatches } from './useMatch
 export function MatchesPage() {
     const selection = useMatchdaySelection();
     const { data: reference } = useReferenceData();
+    const [resultsOpen, setResultsOpen] = useState(false);
 
     return (
         <>
-            <PageHeader title={t('matches.title')} description={t('matches.subtitle')} />
+            <PageHeader
+                title={t('matches.title')}
+                description={t('matches.subtitle')}
+                actions={
+                    selection.matchday !== null && (
+                        <Button variant="outline" onClick={() => setResultsOpen(true)}>
+                            <ImageIcon aria-hidden />
+                            {t('images.results')}
+                        </Button>
+                    )
+                }
+            />
+            {selection.matchday !== null && <ResultImagesDialog matchdayId={selection.matchday.id} open={resultsOpen} onClose={() => setResultsOpen(false)} />}
             <div className="mb-6">
                 <MatchdaySelector selection={selection} />
             </div>
@@ -172,7 +186,10 @@ function MatchdayMatches({ matchday, reference }: { matchday: Matchday; referenc
                                             {match.is_locked && <LockedBadge />}
                                         </div>
                                     </TableCell>
-                                    <TableCell>{match.opponent ?? t('common.none')}</TableCell>
+                                    <TableCell>
+                                        {match.opponent ?? t('common.none')}
+                                        <ResultBadge match={match} team={team} />
+                                    </TableCell>
                                     <TableCell className="text-sm">
                                         <MatchWhen match={match} />
                                     </TableCell>
@@ -247,7 +264,10 @@ function TeamCard({ team, matches, draft, matchday, suggestion, onChange, onEdit
                                     <StatusBadge status={match.status} />
                                     {match.is_locked && <LockedBadge />}
                                 </span>
-                                <span className="text-sm">{match.opponent ?? t('common.none')}</span>
+                                <span className="text-sm">
+                                    {match.opponent ?? t('common.none')}
+                                    <ResultBadge match={match} team={team} />
+                                </span>
                             </span>
                             <span className="text-right text-sm">
                                 <MatchWhen match={match} />
@@ -270,6 +290,17 @@ function TeamCell({ team }: { team: Team }) {
             </span>
             {!team.is_active && <Badge variant="outline">{t('matches.inactiveTeam')}</Badge>}
         </span>
+    );
+}
+
+/** Resultat del partit (gols de l'equip - gols del rival), si ja s'ha desat. */
+function ResultBadge({ match, team }: { match: Match; team: Team }) {
+    if (!match.has_result) return null;
+
+    return (
+        <Badge variant="secondary" className="ml-2 tabular-nums" aria-label={t('matches.resultLabel', { team: team.name, goalsTeam: match.score_team ?? 0, goalsOpponent: match.score_opponent ?? 0 })}>
+            {match.score_team} - {match.score_opponent}
+        </Badge>
     );
 }
 

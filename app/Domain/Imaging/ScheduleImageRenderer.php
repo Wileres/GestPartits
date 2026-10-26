@@ -14,4 +14,11 @@ interface ScheduleImageRenderer
      * @return string Imatge PNG de LayoutPlanner::WIDTH × LayoutPlanner::HEIGHT píxels.
      */
     public function render(PosterPage $page, Branding $branding): string;
+
+    /**
+     * Imatge de resum dels resultats de la jornada.
+     *
+     * @return string Imatge PNG de LayoutPlanner::WIDTH × LayoutPlanner::HEIGHT píxels.
+     */
+    public function renderResults(ResultsPage $page, Branding $branding): string;
 }

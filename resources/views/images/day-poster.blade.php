@@ -8,26 +8,8 @@
 <html lang="ca">
 <head>
 <meta charset="utf-8">
+@include('images.partials.styles')
 <style>
-    @font-face { font-family: 'Inter'; font-weight: 100 900; src: url(data:font/woff2;base64,{{ $fonts['latin'] }}) format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
-    @font-face { font-family: 'Inter'; font-weight: 100 900; src: url(data:font/woff2;base64,{{ $fonts['latin_ext'] }}) format('woff2'); unicode-range: U+0100-02AF, U+0304, U+0308, U+0329, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { width: 1080px; height: 1920px; overflow: hidden; }
-    body {
-        font-family: 'Inter', 'DejaVu Sans', sans-serif;
-        color: #0f1f38;
-        background: linear-gradient(170deg, {{ $branding->primaryColor }} 0%, {{ $branding->primaryDarkColor }} 100%);
-        -webkit-font-smoothing: antialiased;
-        position: relative;
-    }
-    .stripes { position: absolute; inset: 0; background: repeating-linear-gradient(115deg, rgba(255,255,255,0.05) 0 60px, transparent 60px 120px); }
-    header { position: relative; height: {{ \App\Domain\Imaging\LayoutPlanner::HEADER }}px; padding: 70px 72px 0; color: #fff; display: flex; gap: 36px; align-items: flex-start; }
-    .logo { width: 150px; height: 170px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
-    .logo img { max-width: 150px; max-height: 170px; }
-    .club { font-size: 30px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; opacity: 0.9; }
-    h1 { font-size: 104px; font-weight: 900; line-height: 1; margin-top: 10px; text-transform: uppercase; letter-spacing: -0.01em; }
-    .date { font-size: 48px; font-weight: 700; margin-top: 12px; }
-    .subtitle { font-size: 30px; font-weight: 500; margin-top: 10px; opacity: 0.85; }
     main { position: relative; padding: 0 56px; display: flex; flex-direction: column; gap: {{ \App\Domain\Imaging\LayoutPlanner::ROW_GAP }}px; }
     .row { height: {{ $row }}px; background: #fff; border-radius: 28px; display: flex; align-items: center; padding: 0 32px; gap: 28px; box-shadow: 0 10px 30px rgba(0,0,0,0.18); }
     .time { width: {{ $compact ? 150 : 180 }}px; flex-shrink: 0; text-align: center; }
@@ -42,31 +24,20 @@
     .badge svg { width: {{ $compact ? 50 : 60 }}px; height: {{ $compact ? 50 : 60 }}px; display: block; margin: 0 auto 6px; }
     .home { color: {{ $branding->primaryColor }}; }
     .away { color: #52627a; }
-    footer { position: absolute; left: 0; right: 0; bottom: 0; height: {{ \App\Domain\Imaging\LayoutPlanner::FOOTER }}px; display: flex; align-items: center; justify-content: space-between; padding: 0 72px; color: #fff; font-size: 34px; font-weight: 700; }
-    footer .page { font-size: 28px; font-weight: 600; opacity: 0.85; }
+    .group { height: {{ \App\Domain\Imaging\LayoutPlanner::HEADING }}px; display: flex; align-items: center; gap: 18px; padding: 0 12px; color: #fff; font-size: 26px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
+    .group::after { content: ''; flex: 1; height: 2px; background: rgba(255,255,255,0.4); }
 </style>
 </head>
 <body>
 <div class="stripes"></div>
-<header>
-    <div class="logo">
-        @if ($logo !== null)
-            <img src="data:image/png;base64,{{ $logo }}" alt="">
-        @else
-            <svg viewBox="0 0 48 56" width="150" height="170" aria-hidden="true"><path d="M24 2 4 9v17c0 13.5 8.6 23.7 20 28 11.4-4.3 20-14.5 20-28V9L24 2Z" fill="#ffffff"/><path d="M24 7 9 12v14c0 10.6 6.5 18.8 15 22.6V7Z" fill="{{ $branding->primaryColor }}"/><text x="24" y="33" text-anchor="middle" font-family="Inter, sans-serif" font-size="11" font-weight="900" fill="{{ $branding->primaryDarkColor }}" stroke="#ffffff" stroke-width="0.6" paint-order="stroke">SPM</text></svg>
-        @endif
-    </div>
-    <div>
-        <p class="club">{{ $branding->clubName }}</p>
-        <h1>{{ $page->poster->title }}</h1>
-        <p class="date">{{ $page->poster->dateLabel }}</p>
-        @if ($page->poster->subtitle !== '')
-            <p class="subtitle">{{ $page->poster->subtitle }}</p>
-        @endif
-    </div>
-</header>
+@include('images.partials.header', ['title' => $page->poster->title, 'dateLabel' => $page->poster->dateLabel, 'subtitle' => $page->poster->subtitle])
 <main>
+    @php $previousHome = null; @endphp
     @foreach ($page->entries as $entry)
+        @if ($page->poster->grouped && ($loop->first || $entry->home !== $previousHome))
+            <h2 class="group">{{ $entry->home ? 'A casa' : 'A fora' }}</h2>
+        @endif
+        @php $previousHome = $entry->home; @endphp
         <div class="row">
             <div class="time">
                 <strong>{{ $entry->kickoff }}</strong>
@@ -94,12 +65,6 @@
         </div>
     @endforeach
 </main>
-<footer>
-    <span>{{ \App\Domain\Imaging\LayoutPlanner::FOOTER_LEFT }}</span>
-    @if ($page->totalPages > 1)
-        <span class="page">{{ $page->page }}/{{ $page->totalPages }}</span>
-    @endif
-    <span>{{ \App\Domain\Imaging\LayoutPlanner::FOOTER_RIGHT }}</span>
-</footer>
+@include('images.partials.footer', ['pageNumber' => $page->page, 'totalPages' => $page->totalPages])
 </body>
 </html>

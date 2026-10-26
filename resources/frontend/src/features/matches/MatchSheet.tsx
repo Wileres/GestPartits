@@ -27,6 +27,7 @@ import { useDeleteMatch, useSaveMatch } from './useMatches';
 
 const statuses = ['proposed', 'confirmed', 'cancelled'] as const;
 const optionalInteger = z.string().refine((v) => v.trim() === '' || /^\d+$/.test(v.trim()), t('common.invalidNumber'));
+const scoreField = z.string().refine((v) => v.trim() === '' || (/^\d{1,2}$/.test(v.trim())), t('matches.scoreInvalid'));
 const optionalTime = z.string().refine((v) => v === '' || isTime(v), t('common.invalidTime'));
 
 function buildSchema(reference: ReferenceData) {
@@ -54,10 +55,18 @@ function buildSchema(reference: ReferenceData) {
             notes: z.string(),
             whatsapp_extra: z.string(),
             show_in_image: z.boolean(),
+            score_team: scoreField,
+            score_opponent: scoreField,
         })
         .superRefine((v, ctx) => {
             if (v.home_away === '') {
                 ctx.addIssue({ code: 'custom', path: ['home_away'], message: t('common.required') });
+            }
+            if ((v.score_team.trim() === '') !== (v.score_opponent.trim() === '')) {
+                ctx.addIssue({ code: 'custom', path: [v.score_team.trim() === '' ? 'score_team' : 'score_opponent'], message: t('matches.scoreBoth') });
+            }
+            if (v.status === 'cancelled' && (v.score_team.trim() !== '' || v.score_opponent.trim() !== '')) {
+                ctx.addIssue({ code: 'custom', path: ['score_team'], message: t('matches.resultCancelled') });
             }
             if (v.kickoff_time !== '' && v.match_date === '') {
                 ctx.addIssue({ code: 'custom', path: ['match_date'], message: t('common.required') });
@@ -84,7 +93,7 @@ type FormValues = z.infer<ReturnType<typeof buildSchema>>;
 
 const fields = [
     'status', 'home_away', 'opponent', 'round_label', 'game_format', 'match_date', 'kickoff_time', 'call_time', 'duration_min', 'post_min',
-    'field_area_id', 'venue_name', 'address', 'municipality', 'maps_url', 'is_locked', 'rule_override_reason', 'notes', 'whatsapp_extra', 'show_in_image',
+    'field_area_id', 'venue_name', 'address', 'municipality', 'maps_url', 'is_locked', 'rule_override_reason', 'notes', 'whatsapp_extra', 'show_in_image', 'score_team', 'score_opponent',
 ] as const;
 
 export interface MatchSheetTarget {
@@ -168,6 +177,8 @@ function MatchForm({ team, match, suggestedHomeAway = null, matchday, reference,
             notes: match?.notes ?? '',
             whatsapp_extra: match?.whatsapp_extra ?? '',
             show_in_image: match?.show_in_image ?? true,
+            score_team: match?.score_team?.toString() ?? '',
+            score_opponent: match?.score_opponent?.toString() ?? '',
         },
     });
 
@@ -222,6 +233,8 @@ function MatchForm({ team, match, suggestedHomeAway = null, matchday, reference,
             notes: emptyToNull(values.notes),
             whatsapp_extra: emptyToNull(values.whatsapp_extra),
             show_in_image: values.show_in_image,
+            score_team: numberOrNull(values.score_team),
+            score_opponent: numberOrNull(values.score_opponent),
         };
 
         save.mutate(
@@ -413,6 +426,23 @@ function MatchForm({ team, match, suggestedHomeAway = null, matchday, reference,
                     </FormField>
                 </section>
             )}
+
+            <section className="grid gap-3 rounded-lg border p-3" aria-labelledby="match-result-title">
+                <div>
+                    <h3 id="match-result-title" className="text-sm font-semibold">
+                        {t('matches.result')}
+                    </h3>
+                    <p className="text-xs text-muted-foreground">{t('matches.resultHelp')}</p>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                    <FormField id="match-score-team" label={t('matches.scoreTeam', { team: team.name })} error={err('score_team')}>
+                        <Input id="match-score-team" inputMode="numeric" maxLength={2} aria-invalid={err('score_team') !== undefined} {...register('score_team')} />
+                    </FormField>
+                    <FormField id="match-score-opponent" label={t('matches.scoreOpponent')} error={err('score_opponent')}>
+                        <Input id="match-score-opponent" inputMode="numeric" maxLength={2} aria-invalid={err('score_opponent') !== undefined} {...register('score_opponent')} />
+                    </FormField>
+                </div>
+            </section>
 
             <>
                 <FormField id="match-notes" label={t('matches.notes')} error={err('notes')}>

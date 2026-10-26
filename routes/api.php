@@ -88,7 +88,12 @@ Route::middleware(['auth:sanctum', 'active', 'password.changed'])->group(functio
         Route::post('whatsapp/send', [NotificationController::class, 'send'])->middleware('throttle:sensitive')->name('whatsapp.send');
         Route::post('whatsapp/retry-failed', [NotificationController::class, 'retryFailed'])->middleware('throttle:sensitive')->name('whatsapp.retry');
     });
+    Route::get('generated-images', [ImageController::class, 'history'])->name('generated-images.index');
+    Route::delete('generated-images/batches/{batch}', [ImageController::class, 'destroyBatch'])->name('generated-images.destroy-batch');
     Route::get('generated-images/{generatedImage}', [ImageController::class, 'download'])->name('generated-images.download');
+    Route::delete('generated-images/{generatedImage}', [ImageController::class, 'destroy'])->name('generated-images.destroy');
+    Route::get('matchdays/{matchday}/result-images', [ImageController::class, 'results'])->name('result-images.index');
+    Route::post('matchdays/{matchday}/result-images', [ImageController::class, 'generateResults'])->middleware('throttle:sensitive')->name('result-images.generate');
     Route::put('whatsapp-messages/{whatsappMessage}', [NotificationController::class, 'update'])->name('whatsapp-messages.update');
     Route::post('whatsapp-messages/{whatsappMessage}/mark-sent', [NotificationController::class, 'markSent'])->name('whatsapp-messages.mark-sent');
     Route::post('whatsapp-messages/{whatsappMessage}/discard', [NotificationController::class, 'discard'])->name('whatsapp-messages.discard');

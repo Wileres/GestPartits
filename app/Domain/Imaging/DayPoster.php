@@ -16,5 +16,7 @@ final readonly class DayPoster
         public string $dateLabel,
         public string $subtitle,
         public array $entries,
+        /** Si és cert, els partits van agrupats («A casa» i «A fora») amb un títol petit per a cada grup. */
+        public bool $grouped = false,
     ) {}
 }

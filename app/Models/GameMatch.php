@@ -24,7 +24,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'matchday_id', 'team_id', 'round_label', 'opponent', 'home_away', 'status', 'game_format',
     'match_date', 'kickoff_time', 'call_time', 'duration_min', 'post_min', 'field_area_id', 'venue_id',
     'venue_name', 'address', 'municipality', 'maps_url', 'is_locked', 'placement_source',
-    'rule_override_reason', 'notes', 'whatsapp_extra', 'show_in_image',
+    'rule_override_reason', 'notes', 'whatsapp_extra', 'show_in_image', 'score_team', 'score_opponent',
 ])]
 class GameMatch extends Model
 {
@@ -42,6 +42,8 @@ class GameMatch extends Model
             'post_min' => 'integer',
             'is_locked' => 'boolean',
             'show_in_image' => 'boolean',
+            'score_team' => 'integer',
+            'score_opponent' => 'integer',
             'lock_version' => 'integer',
         ];
     }
@@ -79,5 +81,11 @@ class GameMatch extends Model
     public function whatsAppMessages(): HasMany
     {
         return $this->hasMany(WhatsAppMessage::class, 'match_id');
+    }
+
+    /** Un partit té resultat quan s'han desat els gols dels dos equips. */
+    public function hasResult(): bool
+    {
+        return $this->score_team !== null && $this->score_opponent !== null;
     }
 }

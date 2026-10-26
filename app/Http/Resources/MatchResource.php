@@ -60,6 +60,9 @@ class MatchResource extends JsonResource
             'notes' => $this->notes,
             'whatsapp_extra' => $this->whatsapp_extra,
             'show_in_image' => $this->show_in_image,
+            'score_team' => $this->score_team,
+            'score_opponent' => $this->score_opponent,
+            'has_result' => $this->hasResult(),
             'lock_version' => $this->lock_version,
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];

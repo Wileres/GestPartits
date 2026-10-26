@@ -23,6 +23,8 @@ export interface MatchInput {
     notes: string | null;
     whatsapp_extra: string | null;
     show_in_image: boolean;
+    score_team: number | null;
+    score_opponent: number | null;
 }
 
 export interface QuickEntryRow {

@@ -5,6 +5,7 @@ namespace App\Infrastructure\Imaging;
 use App\Domain\Imaging\Branding;
 use App\Domain\Imaging\LayoutPlanner;
 use App\Domain\Imaging\PosterPage;
+use App\Domain\Imaging\ResultsPage;
 use App\Domain\Imaging\ScheduleImageRenderer;
 use HeadlessChromium\BrowserFactory;
 use HeadlessChromium\Clip;
@@ -25,7 +26,27 @@ class ChromiumRenderer implements ScheduleImageRenderer
 
     public function html(PosterPage $page, Branding $branding): string
     {
-        return $this->views->make('images.day-poster', [
+        return $this->view('images.day-poster', $page, $branding);
+    }
+
+    public function resultsHtml(ResultsPage $page, Branding $branding): string
+    {
+        return $this->view('images.results-poster', $page, $branding);
+    }
+
+    public function render(PosterPage $page, Branding $branding): string
+    {
+        return $this->screenshot($this->html($page, $branding));
+    }
+
+    public function renderResults(ResultsPage $page, Branding $branding): string
+    {
+        return $this->screenshot($this->resultsHtml($page, $branding));
+    }
+
+    private function view(string $name, PosterPage|ResultsPage $page, Branding $branding): string
+    {
+        return $this->views->make($name, [
             'page' => $page,
             'branding' => $branding,
             'logo' => $branding->logoPng === null ? null : base64_encode($branding->logoPng),
@@ -36,7 +57,7 @@ class ChromiumRenderer implements ScheduleImageRenderer
         ])->render();
     }
 
-    public function render(PosterPage $page, Branding $branding): string
+    private function screenshot(string $html): string
     {
         $browser = (new BrowserFactory($this->binary))->createBrowser([
             'windowSize' => [LayoutPlanner::WIDTH, LayoutPlanner::HEIGHT],
@@ -49,7 +70,7 @@ class ChromiumRenderer implements ScheduleImageRenderer
         try {
             $tab = $browser->createPage();
             $tab->setViewport(LayoutPlanner::WIDTH, LayoutPlanner::HEIGHT)->await();
-            $tab->setHtml($this->html($page, $branding), 15000);
+            $tab->setHtml($html, 15000);
             // Les fonts incrustades s'han de carregar abans de la captura.
             $tab->evaluate('document.fonts.ready.then(() => true)')->getReturnValue(10000);
 

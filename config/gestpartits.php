@@ -72,8 +72,6 @@ return [
         'gd_font_bold' => env('GD_FONT_BOLD', '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'),
         'width' => 1080,
         'height' => 1920,
-        // Les imatges de versions antigues s'esborren passats aquests dies (tasca programada).
-        'keep_days' => (int) env('IMAGE_KEEP_DAYS', 90),
     ],
 
 ];

@@ -27,6 +27,8 @@ const UsersPage = page(() => import('@/features/users/UsersPage'), 'UsersPage');
 const NotificationsPage = page(() => import('@/features/notifications/NotificationsPage'), 'NotificationsPage');
 const WhatsAppSettingsPage = page(() => import('@/features/whatsapp/WhatsAppSettingsPage'), 'WhatsAppSettingsPage');
 const AppearancePage = page(() => import('@/features/appearance/AppearancePage'), 'AppearancePage');
+const ImagesHistoryPage = page(() => import('@/features/images/ImagesHistoryPage'), 'ImagesHistoryPage');
+const SocialImagePage = page(() => import('@/features/social/SocialImagePage'), 'SocialImagePage');
 const QuickGuidePage = page(() => import('@/features/help/HelpGuides'), 'QuickGuidePage');
 const FullGuidePage = page(() => import('@/features/help/HelpGuides'), 'FullGuidePage');
 const AuditPage = page(() => import('@/features/audit/AuditPage'), 'AuditPage');
@@ -63,6 +65,8 @@ export const routes: RouteObject[] = [
             { path: 'equips', element: protectedPage(() => <TeamsPage />) },
             { path: 'temporades', element: protectedPage(() => <SeasonsPage />) },
             { path: 'avisos', element: protectedPage(() => <NotificationsPage />) },
+            { path: 'xarxes-socials', element: protectedPage(() => <SocialImagePage />) },
+            { path: 'imatges', element: protectedPage(() => <ImagesHistoryPage />) },
             { path: 'ajuda/guia-rapida', element: protectedPage(() => <QuickGuidePage />) },
             { path: 'ajuda/guia-completa', element: protectedPage(() => <FullGuidePage />) },
             { path: 'configuracio/categories', element: protectedPage(() => <CategoriesPage />, adminOnly) },

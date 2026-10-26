@@ -35,3 +35,10 @@ Backend: **268** (11 nuevas para el horario preferente y la convocatoria, 4 para
 - **Ajuda:** rutes `/ajuda/guia-rapida` i `/ajuda/guia-completa`, components a `features/help/HelpGuides.tsx` i textos a `ca.help` (D-069).
 - **Convocatòria, dia i hora a fora, peu de les imatges, avisos i enllaç de WhatsApp:** D-062 a D-067.
 
+## Addenda (2026-10-26): imatges, resultats i xarxes socials
+
+- **Resultats** a cada partit (D-070) i correcció del bloqueig espuri en editar un partit a casa (D-071).
+- **Històric d'imatges** amb esborrat manual (D-072), opció d'agrupar a casa i a fora (D-073) i **imatge de resultats** de la jornada (D-074).
+- **Editor per a xarxes socials** al navegador (D-075).
+- Migracions: `2026_10_26_000100_add_match_results` i `2026_10_26_000200_generated_images_history`.
+

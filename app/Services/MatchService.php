@@ -12,6 +12,7 @@ use App\Services\Scheduling\PreferredScheduleService;
 use App\Services\Scheduling\ScheduleService;
 use App\Support\CallTime;
 use App\Support\ClubSettings;
+use App\Support\Time;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
@@ -23,9 +24,6 @@ use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
  */
 class MatchService
 {
-    /** Camps que defineixen la col·locació d'un partit a casa. */
-    private const PLACEMENT_FIELDS = ['match_date', 'kickoff_time', 'field_area_id'];
-
     public function __construct(
         private readonly ClubSettings $settings,
         private readonly ScheduleService $schedules,
@@ -84,12 +82,47 @@ class MatchService
             if ($oldKickoff === null || $match->call_time !== null) {
                 $match->call_time = CallTime::follow($match->call_time, $oldKickoff, $match->kickoff_time);
             }
+            // Desar només el resultat no toca la programació (ni la deixa «pendent de revisar»).
+            $changesSchedule = $this->changesSchedule($match);
             $match->lock_version++;
             $match->save();
-            $this->schedules->markChanged($match->loadMissing('matchday')->matchday);
+            if ($changesSchedule) {
+                $this->schedules->markChanged($match->loadMissing('matchday')->matchday);
+            }
 
             return $match->load(['team.category', 'fieldArea']);
         });
+    }
+
+    /**
+     * Col·locació normalitzada (dia, hora i camp) per detectar canvis reals: «11:15» i «11:15:00» són la mateixa hora.
+     *
+     * @return array{string|null, string|null, int|null}
+     */
+    private function placementOf(GameMatch $match): array
+    {
+        return [$match->match_date?->toDateString(), Time::hm($match->kickoff_time), $match->field_area_id];
+    }
+
+    /**
+     * Hi ha algun canvi que afecta la programació, els avisos o les imatges (tot menys el resultat).
+     */
+    private function changesSchedule(GameMatch $match): bool
+    {
+        foreach (array_keys($match->getDirty()) as $key) {
+            if (in_array($key, ['score_team', 'score_opponent', 'updated_at', 'lock_version'], true)) {
+                continue;
+            }
+
+            // «10:15» i «10:15:00» són la mateixa hora.
+            if (in_array($key, ['kickoff_time', 'call_time'], true) && Time::hm($match->getOriginal($key)) === Time::hm($match->getAttributes()[$key])) {
+                continue;
+            }
+
+            return true;
+        }
+
+        return false;
     }
 
     public function delete(GameMatch $match): void
@@ -116,7 +149,7 @@ class MatchService
      */
     private function apply(GameMatch $match, Team $team, array $data): void
     {
-        $placementBefore = $match->only(self::PLACEMENT_FIELDS);
+        $placementBefore = $this->placementOf($match);
 
         $match->fill(array_intersect_key($data, array_flip($match->getFillable())));
         $match->team_id = $team->id;
@@ -143,7 +176,7 @@ class MatchService
             }
 
             // Una col·locació feta a mà queda bloquejada perquè la propera proposta no la mogui.
-            if ($placementBefore !== $match->only(self::PLACEMENT_FIELDS) && $match->kickoff_time !== null) {
+            if ($placementBefore !== $this->placementOf($match) && $match->kickoff_time !== null) {
                 $match->placement_source = 'manual';
                 if (! array_key_exists('is_locked', $data)) {
                     $match->is_locked = true;

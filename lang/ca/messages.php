@@ -31,6 +31,7 @@ return [
         'quarter_hour' => 'L\'hora ha de ser en punt, i quart, i mitja o menys quart.',
         'time_step' => 'L\'hora ha de ser múltiple de :step minuts.',
         'operating_hours' => 'L\'hora del partit ha d\'estar entre les :from i les :to.',
+        'result_cancelled' => 'Un partit cancel·lat no pot tenir resultat.',
         'call_after_kickoff' => 'La convocatòria no pot ser posterior a l\'hora del partit.',
         'f11_full_field' => 'Un partit de futbol 11 necessita el camp complet.',
         'placement_incomplete' => 'Per col·locar un partit a casa cal indicar la data, l\'hora i el camp.',
