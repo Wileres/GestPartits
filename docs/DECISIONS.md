@@ -82,9 +82,4 @@ Formato: `D-NNN · fecha · estado` (Propuesta / Aceptada / Sustituida). Detalle
 | D-076 | 2026-10-27 | Aceptada | Formato de imagen `PosterFormat`: historia (1080 × 1920, cabecera 400 y pie 150) o publicación de Instagram (1080 × 1350, cabecera 300 y pie 100). La imagen de resultados es siempre una publicación | Petición del club; el espacio sobrante abajo se aprovecha |
 | D-077 | 2026-10-27 | Aceptada | Opción «comprimir»: todos los partidos de un día en una sola imagen con cajas de altura proporcional al número de partidos (mínimo 64 px, máximo 190 px; resultados 50–130 px). Solo se pagina si no caben a la altura mínima, con páginas equilibradas | Petición del club |
 | D-078 | 2026-10-27 | Aceptada | Las medidas del texto de cada fila salen de `RowMetrics` según la altura de la caja (completa, media o apretada, que quita instalación y convocatoria y pone equipo y rival en una línea). Chromium y GD usan las mismas | Texto legible y coherente entre renderizadores |
-
-
-## D-079 — Pàgines per a casa / a fora i format de la imatge de resultats (2026-10-27)
-
-- Quan els partits d'un dia no caben en una sola imatge, es reparteixen primer en **casa** i **fora** (mai es barregen a la mateixa imatge) i només després es pagina cada grup si cal.
-- La imatge de resultats admet `format` (`post` per defecte, `story`). En història les files poden créixer fins a 190 px (`RESULT_MAX_ROW_STORY`). El format es desa a `options` del lot i es mostra a l'històric.
+| D-079 | 2026-10-27 | Aceptada | Si los partidos de un día no caben en una imagen, se reparten primero en casa y fuera (nunca se mezclan en la misma imagen) y solo después se pagina cada grupo. La imagen de resultados admite `format` (`post` por defecto o `story`; en historia las filas crecen hasta 190 px); el formato se guarda en `options` del lote y se muestra en el histórico. |
