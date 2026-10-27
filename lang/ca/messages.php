@@ -60,4 +60,7 @@ return [
         'has_matches' => 'No es pot esborrar una jornada que té partits.',
     ],
 
+    'mail_test_subject' => 'Correu de prova',
+    'mail_test_body' => 'Si has rebut aquest missatge, la configuració del correu funciona correctament.',
+    'mail_test_failed' => 'No s\'ha pogut enviar el correu de prova: :error',
 ];

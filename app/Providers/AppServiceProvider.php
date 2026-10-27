@@ -14,6 +14,7 @@ use App\Infrastructure\WhatsApp\WebGatewayProvider;
 use App\Infrastructure\WhatsApp\WhatsAppProviderRegistry;
 use App\Mail\PhpMailerTransport;
 use App\Models\User;
+use App\Support\MailSettings;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -66,7 +67,7 @@ class AppServiceProvider extends ServiceProvider
     {
         Model::shouldBeStrict(! $this->app->isProduction());
 
-        Mail::extend('phpmailer', fn (array $config) => new PhpMailerTransport($config));
+        Mail::extend('phpmailer', fn (array $config) => new PhpMailerTransport($this->app->make(MailSettings::class)->apply($config)));
 
         $this->configureAuthorization();
         $this->configureRateLimiting();

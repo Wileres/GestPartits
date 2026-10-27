@@ -75,6 +75,7 @@ export const scheduleApi = {
     propose: (id: number, version: number) => api.post<Wrapped<ScheduleData>>(`/schedules/${id}/proposal`, { version }).then((r) => r.data),
     save: (id: number, version: number) => api.post<Wrapped<ScheduleData>>(`/schedules/${id}/save`, { version }).then((r) => r.data),
     undo: (id: number, version: number) => api.post<Wrapped<ScheduleData>>(`/schedules/${id}/undo`, { version }).then((r) => r.data),
+    restore: (id: number, version: number, versionId: number) => api.post<Wrapped<ScheduleData>>(`/schedules/${id}/versions/${versionId}/restore`, { version }).then((r) => r.data),
     confirm: (id: number, version: number) => api.post<Wrapped<ScheduleData>>(`/schedules/${id}/confirm`, { version }).then((r) => r.data),
     move: (id: number, version: number, matchId: number, target: MoveTarget) =>
         api.post<Wrapped<ScheduleData>>(`/schedules/${id}/moves`, { version, match_id: matchId, ...target }).then((r) => r.data),

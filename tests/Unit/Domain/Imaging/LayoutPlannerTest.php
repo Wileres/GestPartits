@@ -313,4 +313,13 @@ class LayoutPlannerTest extends TestCase
             $this->assertSame([1080, 1350], [$size[0], $size[1]], $renderer->name());
         }
     }
+
+    public function test_away_results_put_the_rival_first_with_the_scores_swapped(): void
+    {
+        $home = new ResultEntry('Prebenjamí S8', 'Olot', true, 4, 1);
+        $away = new ResultEntry('Prebenjamí S8', 'Santa Eugenia', false, 4, 1);
+
+        $this->assertSame(['Prebenjamí S8', 4, 1, 'Olot'], [$home->leftName(), $home->leftScore(), $home->rightScore(), $home->rightName()]);
+        $this->assertSame(['Santa Eugenia', 1, 4, 'Prebenjamí S8'], [$away->leftName(), $away->leftScore(), $away->rightScore(), $away->rightName()]);
+    }
 }

@@ -49,6 +49,7 @@ export function useScheduleActions(matchdayId: number, schedule: ScheduleData | 
         propose: useScheduleMutation<void>(matchdayId, schedule, (id, version) => scheduleApi.propose(id, version)),
         save: useScheduleMutation<void>(matchdayId, schedule, (id, version) => scheduleApi.save(id, version)),
         undo: useScheduleMutation<void>(matchdayId, schedule, (id, version) => scheduleApi.undo(id, version)),
+        restore: useScheduleMutation<number>(matchdayId, schedule, (id, version, versionId) => scheduleApi.restore(id, version, versionId)),
         confirm: useScheduleMutation<void>(matchdayId, schedule, (id, version) => scheduleApi.confirm(id, version)),
         move: useScheduleMutation<{ matchId: number; target: MoveTarget }>(matchdayId, schedule, (id, version, { matchId, target }) =>
             scheduleApi.move(id, version, matchId, target),

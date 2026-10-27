@@ -76,7 +76,8 @@ class ImageService
     public function posters(Schedule $schedule, bool $grouped = false, bool $compress = false, PosterFormat $format = PosterFormat::Story): array
     {
         $matchday = $schedule->matchday;
-        $subtitle = $matchday->label ?? '';
+        // La imatge no mostra el nom de la jornada.
+        $subtitle = '';
         $matches = GameMatch::query()->with(['team', 'fieldArea'])
             ->where('matchday_id', $matchday->id)
             ->whereIn('status', [MatchStatus::Proposed->value, MatchStatus::Confirmed->value])
@@ -131,7 +132,7 @@ class ImageService
         $first = CatalanDate::date($matchday->starts_on);
         $last = CatalanDate::date($matchday->ends_on);
 
-        return new ResultsPoster('Resultats', $first === $last ? $first : "{$first} – {$last}", $matchday->label ?? '', $entries, $format);
+        return new ResultsPoster('Resultats', $first === $last ? $first : "{$first} – {$last}", '', $entries, $format);
     }
 
     /**

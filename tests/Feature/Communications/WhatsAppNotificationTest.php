@@ -253,4 +253,41 @@ class WhatsAppNotificationTest extends TestCase
 
         $this->spa()->postJson('/api/whatsapp-destinations', [...$base, 'provider' => 'manual', 'destination_type' => 'group'])->assertCreated();
     }
+
+    public function test_restoring_a_confirmed_version_brings_back_its_images_and_notice_states(): void
+    {
+        $this->destination('alevi-a');
+        $this->preview();
+        $first = $this->schedule->refresh()->confirmed_version_id;
+        $original = WhatsAppMessage::query()->where('schedule_id', $this->schedule->id)->whereNotNull('match_id')->firstOrFail();
+        $original->forceFill(['status' => WhatsAppMessageStatus::ManualSent, 'sent_at' => now()])->save();
+
+        // Es canvia l'horari i es confirma de nou: l'avís enviat queda desactualitzat.
+        $match = GameMatch::query()->where('team_id', $this->team('alevi-a')->id)->firstOrFail();
+        $match->update(['kickoff_time' => '12:15']);
+        $service = app(ScheduleService::class);
+        app(ScheduleService::class)->markChanged($this->schedule->matchday);
+        $service->confirm($this->schedule->refresh(), $this->schedule->refresh()->lock_version);
+        $this->preview();
+        $this->assertSame(WhatsAppMessageStatus::Outdated, $original->refresh()->status);
+        $this->assertNotSame($first, $this->schedule->refresh()->confirmed_version_id);
+
+        $this->spa()->postJson("/api/schedules/{$this->schedule->id}/versions/{$first}/restore", ['version' => $this->schedule->lock_version])
+            ->assertOk()->assertJsonPath('data.status', 'confirmed');
+
+        $this->assertSame($first, $this->schedule->refresh()->confirmed_version_id);
+        $this->assertSame('11:15', substr((string) $match->refresh()->kickoff_time, 0, 5));
+        $this->assertSame(WhatsAppMessageStatus::ManualSent, $original->refresh()->status);
+        $this->assertSame(0, WhatsAppMessage::query()->where('status', WhatsAppMessageStatus::Outdated->value)->count());
+    }
+
+    public function test_restoring_an_unconfirmed_version_leaves_the_schedule_for_review(): void
+    {
+        $service = app(ScheduleService::class);
+        $service->save($this->schedule->refresh(), $this->schedule->lock_version);
+        $manual = $this->schedule->refresh()->versions()->where('kind', 'manual_save')->firstOrFail();
+
+        $this->spa()->postJson("/api/schedules/{$this->schedule->id}/versions/{$manual->id}/restore", ['version' => $this->schedule->refresh()->lock_version])
+            ->assertOk()->assertJsonPath('data.status', 'needs_review');
+    }
 }

@@ -13,6 +13,8 @@ use App\Enums\HomeAway;
 use App\Enums\MatchStatus;
 use App\Enums\ScheduleStatus;
 use App\Enums\ScheduleVersionKind;
+use App\Enums\WhatsAppMessageStatus;
+use App\Enums\WhatsAppProviderKey;
 use App\Events\ScheduleChanged;
 use App\Events\ScheduleConfirmed;
 use App\Models\FieldArea;
@@ -20,6 +22,7 @@ use App\Models\GameMatch;
 use App\Models\Matchday;
 use App\Models\Schedule;
 use App\Models\ScheduleVersion;
+use App\Models\WhatsAppMessage;
 use App\Services\AuditLogger;
 use App\Support\CallTime;
 use App\Support\ClubSettings;
@@ -257,6 +260,73 @@ class ScheduleService
         ScheduleChanged::dispatch($schedule->matchday);
 
         return $this->state($schedule);
+    }
+
+    /**
+     * Restaura una versió anterior: els partits tornen a l'estat de la versió. Si la versió era una confirmació,
+     * la programació torna a estar confirmada (no cal desar-la ni confirmar-la de nou) i les imatges i els avisos
+     * d'aquella versió tornen a ser els vigents. Si no, queda com a esborrany (o pendent de revisió si ja estava confirmada).
+     *
+     * @return array<string, mixed>
+     */
+    public function restoreVersion(Schedule $schedule, ScheduleVersion $target, int $version): array
+    {
+        abort_unless($target->schedule_id === $schedule->id, 404);
+
+        DB::transaction(function () use ($schedule, $target, $version) {
+            $schedule = $this->lock($schedule, $version);
+
+            $this->restore($schedule->matchday, $target->snapshot);
+
+            $restored = $this->createVersion($schedule, ScheduleVersionKind::Undo, __('schedule.versions.restore', ['number' => $target->number]));
+
+            if ($target->kind === ScheduleVersionKind::Confirmation) {
+                $schedule->status = ScheduleStatus::Confirmed;
+                $schedule->confirmed_at = $target->created_at;
+                $schedule->confirmed_by = $target->created_by;
+                $schedule->confirmed_version_id = $target->id;
+                $this->restoreNoticeStates($schedule, $target);
+            } else {
+                $this->markReviewIfConfirmed($schedule);
+                if ($schedule->status !== ScheduleStatus::NeedsReview) {
+                    $schedule->status = ScheduleStatus::Draft;
+                }
+            }
+
+            $this->bump($schedule, $restored);
+
+            $this->audit->log('schedule.restored', $schedule, null, ['restored_version' => $target->number, 'confirmed' => $target->kind === ScheduleVersionKind::Confirmation]);
+        });
+
+        ScheduleChanged::dispatch($schedule->matchday);
+
+        return $this->state($schedule);
+    }
+
+    /**
+     * Els avisos que es van enviar per a la versió restaurada tornen a comptar com a enviats, i els enviats per a
+     * una altra versió passen a desactualitzats.
+     */
+    private function restoreNoticeStates(Schedule $schedule, ScheduleVersion $target): void
+    {
+        $delivered = [WhatsAppMessageStatus::Sent->value, WhatsAppMessageStatus::ManualSent->value];
+
+        WhatsAppMessage::query()->where('schedule_id', $schedule->id)
+            ->whereIn('status', $delivered)
+            ->where(fn ($q) => $q->where('schedule_version_id', '!=', $target->id)->orWhereNull('schedule_version_id'))
+            ->update(['status' => WhatsAppMessageStatus::Outdated->value]);
+
+        // L'últim avís de cada partit i destí d'aquella versió que havia quedat desactualitzat.
+        $latest = WhatsAppMessage::query()->where('schedule_id', $schedule->id)
+            ->where('schedule_version_id', $target->id)
+            ->where('status', WhatsAppMessageStatus::Outdated->value)
+            ->whereNotNull('sent_at')
+            ->orderByDesc('id')->get()
+            ->unique(fn (WhatsAppMessage $m) => $m->match_id.'-'.$m->whatsapp_destination_id);
+
+        foreach ($latest as $message) {
+            $message->forceFill(['status' => $message->provider === WhatsAppProviderKey::Manual ? WhatsAppMessageStatus::ManualSent : WhatsAppMessageStatus::Sent])->save();
+        }
     }
 
     /**

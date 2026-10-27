@@ -39,7 +39,7 @@ class GdRenderer implements ScheduleImageRenderer
         foreach ($page->entries as $index => $entry) {
             // Títol petit de cada grup («A casa» / «A fora»).
             if ($page->poster->grouped && ($index === 0 || $entry->home !== $previousHome)) {
-                imagettftext($image, 24, 0, 68, $y + 36, $white, $this->boldFont, $entry->home ? 'A CASA' : 'A FORA');
+                imagettftext($image, 24, 0, 68, $y + 36, $white, $this->boldFont, mb_strtoupper($entry->home ? LayoutPlanner::HOME_LABEL : LayoutPlanner::AWAY_LABEL));
                 imagefilledrectangle($image, 230, $y + 25, $width - 68, $y + 27, $white);
                 $y += LayoutPlanner::HEADING + LayoutPlanner::ROW_GAP;
             }
@@ -49,7 +49,7 @@ class GdRenderer implements ScheduleImageRenderer
             $middle = $y + (int) ($rowHeight / 2);
             $textX = 56 + 32 + $m->timeWidth + 20;
             $badgeX = $width - 56 - 24 - $m->badgeWidth;
-            $badge = $entry->home ? 'A CASA' : 'A FORA';
+            $badge = mb_strtoupper($entry->home ? LayoutPlanner::HOME_LABEL : LayoutPlanner::AWAY_LABEL);
 
             // Hora (i convocatòria) centrades a la columna de l'hora; el punt de partida del text és la línia de base.
             $timeSize = $m->time * 0.75;
@@ -65,7 +65,7 @@ class GdRenderer implements ScheduleImageRenderer
                 $baseline = $middle + (int) ($teamSize * 0.35);
                 imagettftext($image, $teamSize, 0, $textX, $baseline, $text, $this->boldFont, $team);
                 $teamWidth = $this->width($team, $teamSize, $this->boldFont);
-                $opponent = $this->fitWidth(($entry->home ? 'vs ' : '@ ').$entry->opponent, (int) ($m->opponent * 0.75), $this->regularFont, max(80, $badgeX - ($textX + $teamWidth + 24) - 12));
+                $opponent = $this->fitWidth('vs '.$entry->opponent, (int) ($m->opponent * 0.75), $this->regularFont, max(80, $badgeX - ($textX + $teamWidth + 24) - 12));
                 imagettftext($image, $m->opponent * 0.75, 0, $textX + $teamWidth + 16, $baseline, $text, $this->regularFont, $opponent);
             } else {
                 $teamSize = $m->team * 0.75;
@@ -75,7 +75,7 @@ class GdRenderer implements ScheduleImageRenderer
                 $block = $teamSize + $opponentSize + ($lines === 3 ? $m->place * 0.75 : 0) + 14 * ($lines - 1);
                 $top = $middle - (int) ($block / 2);
                 imagettftext($image, $teamSize, 0, $textX, $top + (int) ($teamSize * 1.0), $text, $this->boldFont, $this->fitWidth($entry->team, (int) $teamSize, $this->boldFont, $room));
-                imagettftext($image, $opponentSize, 0, $textX, $top + (int) ($teamSize + 12 + $opponentSize), $text, $this->regularFont, $this->fitWidth(($entry->home ? 'vs ' : '@ ').$entry->opponent, (int) $opponentSize, $this->regularFont, $room));
+                imagettftext($image, $opponentSize, 0, $textX, $top + (int) ($teamSize + 12 + $opponentSize), $text, $this->regularFont, $this->fitWidth('vs '.$entry->opponent, (int) $opponentSize, $this->regularFont, $room));
                 if ($lines === 3) {
                     imagettftext($image, $m->place * 0.75, 0, $textX, $top + (int) ($teamSize + $opponentSize + $m->place * 0.75 + 26), $muted, $this->regularFont, $this->fitWidth((string) $entry->place, (int) ($m->place * 0.75), $this->regularFont, $room));
                 }
@@ -104,10 +104,8 @@ class GdRenderer implements ScheduleImageRenderer
             imagefilledrectangle($image, 56, $y, $width - 56, $y + $m->row, $white);
             $baseline = $y + (int) ($m->row / 2) + (int) ($nameSize * 0.35);
 
-            imagettftext($image, $m->badgeFont * 0.75, 0, 78, $baseline, $entry->home ? $primary : $muted, $this->boldFont, $entry->home ? 'CASA' : 'FORA');
-
             // Marcador centrat en un oval del color del club.
-            $label = $entry->scoreTeam.' - '.$entry->scoreOpponent;
+            $label = $entry->leftScore().' - '.$entry->rightScore();
             $labelWidth = $this->width($label, $scoreSize, $this->boldFont);
             $pillWidth = max($m->timeWidth, $labelWidth + 50);
             $pillHeight = (int) round($m->row * 0.68);
@@ -120,10 +118,12 @@ class GdRenderer implements ScheduleImageRenderer
             imagettftext($image, $scoreSize, 0, $pillX + (int) (($pillWidth - $labelWidth) / 2), $pillY + $radius + (int) ($scoreSize * 0.36), $white, $this->boldFont, $label);
 
             // Els noms es retallen perquè mai no pisin el marcador.
-            $team = $this->fitWidth($entry->team, (int) $nameSize, $this->boldFont, $pillX - 160 - 24);
-            imagettftext($image, $nameSize, 0, 160, $baseline, $text, $this->boldFont, $team);
-            $opponent = $this->fitWidth($entry->opponent, (int) $nameSize, $this->regularFont, $width - 78 - ($pillX + $pillWidth) - 24);
-            imagettftext($image, $nameSize, 0, $width - 78 - $this->width($opponent, $nameSize, $this->regularFont), $baseline, $muted, $this->regularFont, $opponent);
+            $leftFont = $entry->clubOnLeft() ? $this->boldFont : $this->regularFont;
+            $rightFont = $entry->clubOnLeft() ? $this->regularFont : $this->boldFont;
+            $left = $this->fitWidth($entry->leftName(), (int) $nameSize, $leftFont, $pillX - 78 - 24);
+            imagettftext($image, $nameSize, 0, 78, $baseline, $entry->clubOnLeft() ? $text : $muted, $leftFont, $left);
+            $right = $this->fitWidth($entry->rightName(), (int) $nameSize, $rightFont, $width - 78 - ($pillX + $pillWidth) - 24);
+            imagettftext($image, $nameSize, 0, $width - 78 - $this->width($right, $nameSize, $rightFont), $baseline, $entry->clubOnLeft() ? $muted : $text, $rightFont, $right);
 
             $y += $m->row + LayoutPlanner::RESULT_GAP;
         }

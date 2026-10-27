@@ -38,7 +38,7 @@
     @php $previousHome = null; @endphp
     @foreach ($page->entries as $entry)
         @if ($page->poster->grouped && ($loop->first || $entry->home !== $previousHome))
-            <h2 class="group">{{ $entry->home ? 'A casa' : 'A fora' }}</h2>
+            <h2 class="group">{{ $entry->home ? \App\Domain\Imaging\LayoutPlanner::HOME_LABEL : \App\Domain\Imaging\LayoutPlanner::AWAY_LABEL }}</h2>
         @endif
         @php $previousHome = $entry->home; @endphp
         <div class="row">
@@ -51,7 +51,7 @@
             <div class="divider"></div>
             <div class="match">
                 <p class="team">{{ $entry->team }}</p>
-                <p class="opponent">{{ $entry->home ? 'vs' : '@' }} {{ $entry->opponent }}</p>
+                <p class="opponent">vs {{ $entry->opponent }}</p>
                 @if ($full && $entry->place !== null)
                     <p class="place">{{ $entry->place }}</p>
                 @endif
@@ -64,7 +64,7 @@
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6v6"/><path d="M15 6v6"/><path d="M2 12h19.6"/><path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-5C20.1 6.8 19.1 6 18 6H4a2 2 0 0 0-2 2v10h3"/><circle cx="7" cy="18" r="2"/><path d="M9 18h5"/><circle cx="16" cy="18" r="2"/></svg>
                     @endif
                 @endif
-                {{ $entry->home ? 'A casa' : 'A fora' }}
+                {{ $entry->home ? \App\Domain\Imaging\LayoutPlanner::HOME_LABEL : \App\Domain\Imaging\LayoutPlanner::AWAY_LABEL }}
             </div>
         </div>
     @endforeach

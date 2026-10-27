@@ -27,6 +27,7 @@ const UsersPage = page(() => import('@/features/users/UsersPage'), 'UsersPage');
 const NotificationsPage = page(() => import('@/features/notifications/NotificationsPage'), 'NotificationsPage');
 const WhatsAppSettingsPage = page(() => import('@/features/whatsapp/WhatsAppSettingsPage'), 'WhatsAppSettingsPage');
 const AppearancePage = page(() => import('@/features/appearance/AppearancePage'), 'AppearancePage');
+const MailSettingsPage = page(() => import('@/features/mail/MailSettingsPage'), 'MailSettingsPage');
 const ImagesHistoryPage = page(() => import('@/features/images/ImagesHistoryPage'), 'ImagesHistoryPage');
 const SocialImagePage = page(() => import('@/features/social/SocialImagePage'), 'SocialImagePage');
 const QuickGuidePage = page(() => import('@/features/help/HelpGuides'), 'QuickGuidePage');
@@ -74,6 +75,7 @@ export const routes: RouteObject[] = [
             { path: 'configuracio/bloquejos', element: protectedPage(() => <BlocksPage />, adminOnly) },
             { path: 'configuracio/regles', element: protectedPage(() => <RulesPage />, adminOnly) },
             { path: 'configuracio/whatsapp', element: protectedPage(() => <WhatsAppSettingsPage />, adminOnly) },
+            { path: 'configuracio/correu', element: protectedPage(() => <MailSettingsPage />, adminOnly) },
             { path: 'configuracio/aparenca', element: protectedPage(() => <AppearancePage />, adminOnly) },
             { path: 'usuaris', element: protectedPage((me) => <UsersPage me={me} />, (me) => me.permissions.manage_users) },
             { path: 'auditoria', element: protectedPage(() => <AuditPage />, (me) => me.permissions.view_audit) },

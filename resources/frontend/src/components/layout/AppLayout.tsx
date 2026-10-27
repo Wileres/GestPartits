@@ -1,4 +1,4 @@
-import { Ban, BookOpen, CalendarDays, Images, Share2, ClipboardList, CalendarRange, Clock, ListChecks, LogOut, Menu, MessageCircle, MessagesSquare, Palette, Shapes, Shield, Trophy, UserRound, Users, X, Zap } from 'lucide-react';
+import { Ban, BookOpen, CalendarDays, Images, Share2, ClipboardList, CalendarRange, Clock, ListChecks, LogOut, Mail, Menu, MessageCircle, MessagesSquare, Palette, Shapes, Shield, Trophy, UserRound, Users, X, Zap } from 'lucide-react';
 import { useState, type ComponentType } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router';
 import { toast } from 'sonner';
@@ -33,6 +33,7 @@ const navItems: NavItem[] = [
     { to: '/configuracio/bloquejos', label: t('nav.blocks'), icon: Ban, visible: isAdmin },
     { to: '/configuracio/regles', label: t('nav.rules'), icon: ListChecks, visible: isAdmin },
     { to: '/configuracio/whatsapp', label: t('nav.whatsapp'), icon: MessagesSquare, visible: isAdmin },
+    { to: '/configuracio/correu', label: t('nav.mail'), icon: Mail, visible: isAdmin },
     { to: '/configuracio/aparenca', label: t('nav.appearance'), icon: Palette, visible: isAdmin },
     { to: '/usuaris', label: t('nav.users'), icon: Users, visible: (me) => me.permissions.manage_users },
     { to: '/auditoria', label: t('nav.audit'), icon: ClipboardList, visible: (me) => me.permissions.view_audit },

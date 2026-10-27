@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\AvailabilitySlotController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\FieldBlockController;
 use App\Http\Controllers\Api\ImageController;
+use App\Http\Controllers\Api\MailSettingsController;
 use App\Http\Controllers\Api\MatchController;
 use App\Http\Controllers\Api\MatchdayController;
 use App\Http\Controllers\Api\NotificationController;
@@ -73,6 +74,7 @@ Route::middleware(['auth:sanctum', 'active', 'password.changed'])->group(functio
         Route::post('proposal', [ScheduleController::class, 'propose'])->middleware('throttle:sensitive')->name('propose');
         Route::post('save', [ScheduleController::class, 'save'])->name('save');
         Route::post('undo', [ScheduleController::class, 'undo'])->name('undo');
+        Route::post('versions/{scheduleVersion}/restore', [ScheduleController::class, 'restore'])->name('restore');
         Route::post('confirm', [ScheduleController::class, 'confirm'])->name('confirm');
         Route::post('moves/validate', [ScheduleController::class, 'validateMove'])->name('moves.validate');
         Route::post('moves', [ScheduleController::class, 'move'])->name('moves');
@@ -106,6 +108,9 @@ Route::middleware(['auth:sanctum', 'active', 'password.changed'])->group(functio
     Route::get('settings', [SettingsController::class, 'show'])->name('settings.show');
     Route::put('settings', [SettingsController::class, 'update'])->name('settings.update');
     Route::post('settings/logo', [SettingsController::class, 'uploadLogo'])->name('settings.logo.upload');
+    Route::get('mail-settings', [MailSettingsController::class, 'show'])->name('mail-settings.show');
+    Route::put('mail-settings', [MailSettingsController::class, 'update'])->name('mail-settings.update');
+    Route::post('mail-settings/test', [MailSettingsController::class, 'test'])->middleware('throttle:sensitive')->name('mail-settings.test');
     Route::delete('settings/logo', [SettingsController::class, 'deleteLogo'])->name('settings.logo.delete');
 
     // Franges, bloquejos i regles

@@ -207,3 +207,34 @@ export const settingsApi = {
     },
     deleteLogo: () => api.delete<Resource<BrandingSettings>>('/settings/logo').then((r) => r.data),
 };
+
+export type MailEncryption = 'tls' | 'ssl' | 'none';
+
+export interface MailSettings {
+    host: string;
+    port: number;
+    encryption: MailEncryption;
+    username: string;
+    from_address: string;
+    from_name: string;
+    /** La contrasenya no es retorna mai: només si n'hi ha una de desada. */
+    has_password: boolean;
+    configured: boolean;
+}
+
+export interface MailSettingsInput {
+    host: string;
+    port: number;
+    encryption: MailEncryption;
+    username: string;
+    /** En blanc es conserva l'actual. */
+    password: string;
+    from_address: string;
+    from_name: string;
+}
+
+export const mailSettingsApi = {
+    get: () => api.get<Resource<MailSettings>>('/mail-settings').then((r) => r.data),
+    update: (input: MailSettingsInput) => api.put<Resource<MailSettings>>('/mail-settings', input).then((r) => r.data),
+    test: (email: string | null) => api.post<Resource<{ sent_to: string }>>('/mail-settings/test', { email }).then((r) => r.data),
+};

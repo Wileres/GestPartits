@@ -34,6 +34,11 @@ final class LayoutPlanner
 
     public const FOOTER_RIGHT = '#futboldebarri';
 
+    /** Títols dels partits a casa i a fora (títols de grup i etiquetes de cada fila). */
+    public const HOME_LABEL = 'Pic del bac';
+
+    public const AWAY_LABEL = 'Visitant';
+
     public const NORMAL_ROW = 150;
 
     public const COMPACT_ROW = 118;

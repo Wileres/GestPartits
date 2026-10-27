@@ -162,4 +162,30 @@ describe('calendari de la jornada', () => {
 
         await waitFor(() => expect(scheduleRequests).toBeGreaterThanOrEqual(2));
     });
+
+    it('restaura una versió anterior des de l’històric de versions', async () => {
+        const versions = [
+            { id: 1, number: 1, kind: 'confirmation', kind_label: 'Confirmació', summary: 'Programació confirmada', created_by: 'Gestor', created_at: null, is_current: false },
+            { id: 2, number: 2, kind: 'manual_save', kind_label: 'Desat manual', summary: 'Esborrany desat', created_by: 'Gestor', created_at: null, is_current: true },
+        ];
+        const { calls } = mockFetch(
+            server((url, init) => {
+                if (url === '/api/matchdays/7/schedule') return { status: 200, body: { data: { ...schedule, versions } } };
+                if (url === '/api/schedules/3/versions/1/restore' && init.method === 'POST') return { status: 200, body: { data: { ...schedule, versions } } };
+
+                return { status: 404 };
+            }),
+        );
+        renderApp('/');
+        const user = userEvent.setup();
+
+        await user.click(await screen.findByRole('button', { name: /Versions/ }));
+        const dialog = await screen.findByRole('dialog');
+        expect(within(dialog).queryByRole('button', { name: 'Restaura 2' })).not.toBeInTheDocument();
+        await user.click(within(dialog).getByRole('button', { name: 'Restaura 1' }));
+        await user.click(within(await screen.findByRole('dialog', { name: 'Restaurar aquesta versió?' })).getByRole('button', { name: 'Restaura' }));
+
+        await waitFor(() => expect(calls.some((c) => c.url === '/api/schedules/3/versions/1/restore')).toBe(true));
+        expect(JSON.parse(String(calls.find((c) => c.url === '/api/schedules/3/versions/1/restore')?.init.body))).toEqual({ version: 4 });
+    });
 });

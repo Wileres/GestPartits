@@ -160,7 +160,7 @@ class MatchApiTest extends TestCase
         $id = $this->create(['team_id' => $this->team('alevi-a')->id, 'status' => 'confirmed', 'home_away' => 'home'])->json('data.id');
         $base = ['team_id' => $this->team('alevi-a')->id, 'status' => 'confirmed', 'home_away' => 'home'];
 
-        $this->spa()->putJson("/api/matches/{$id}", [...$base, 'opponent' => 'Primer canvi', 'lock_version' => 0])
+        $this->spa()->putJson("/api/matches/{$id}", [...$base, 'opponent' => 'Primer Canvi', 'lock_version' => 0])
             ->assertOk()->assertJsonPath('data.lock_version', 1);
 
         // Un segon gestor que encara té la versió 0 no pot sobreescriure el canvi.
@@ -168,7 +168,7 @@ class MatchApiTest extends TestCase
             ->assertStatus(409)
             ->assertJsonPath('message', 'Algú altre ha modificat aquestes dades. Recarrega-les i torna-ho a provar.');
 
-        $this->assertSame('Primer canvi', GameMatch::query()->find($id)->opponent);
+        $this->assertSame('Primer Canvi', GameMatch::query()->find($id)->opponent);
     }
 
     public function test_switching_a_home_match_to_away_frees_the_field(): void

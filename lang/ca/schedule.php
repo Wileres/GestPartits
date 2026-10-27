@@ -12,6 +12,7 @@ return [
         'proposal' => 'Proposta automàtica: :placed partits col·locats, :unplaced sense programar',
         'manual_save' => 'Esborrany desat',
         'undo' => 'Desfet: s\'ha tornat a la versió :number',
+        'restore' => 'Restaurada la versió :number',
         'confirmation' => 'Programació confirmada',
     ],
 ];

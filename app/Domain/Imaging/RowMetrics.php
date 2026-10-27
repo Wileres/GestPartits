@@ -41,14 +41,14 @@ final readonly class RowMetrics
         $radius = self::clamp($row * 0.19, 14, 30);
 
         if ($row >= 118) {
-            return new self(self::FULL, $row, self::clamp($row * 0.41, 50, 80), self::clamp($row * 0.16, 22, 30), self::clamp($row * 0.28, 36, 54), self::clamp($row * 0.227, 30, 44), self::clamp($row * 0.165, 22, 30), self::clamp($row * 1.2, 150, 230), $radius, $row >= 140 ? 132 : 120, 22, self::clamp($row * 0.4, 50, 70));
+            return new self(self::FULL, $row, self::clamp($row * 0.41, 50, 80), self::clamp($row * 0.16, 22, 30), self::clamp($row * 0.28, 36, 54), self::clamp($row * 0.227, 30, 44), self::clamp($row * 0.165, 22, 30), self::clamp($row * 1.2, 150, 230), $radius, 190, 22, self::clamp($row * 0.4, 50, 70));
         }
 
         if ($row >= 84) {
-            return new self(self::MEDIUM, $row, self::clamp($row * 0.5, 38, 56), 0, self::clamp($row * 0.34, 26, 40), self::clamp($row * 0.27, 22, 32), 0, 150, $radius, 100, 18, 0);
+            return new self(self::MEDIUM, $row, self::clamp($row * 0.5, 38, 56), 0, self::clamp($row * 0.34, 26, 40), self::clamp($row * 0.27, 22, 32), 0, 150, $radius, 160, 18, 0);
         }
 
-        return new self(self::TIGHT, $row, self::clamp($row * 0.5, 30, 40), 0, self::clamp($row * 0.42, 24, 34), self::clamp($row * 0.36, 20, 30), 0, 130, $radius, 84, 16, 0);
+        return new self(self::TIGHT, $row, self::clamp($row * 0.5, 30, 40), 0, self::clamp($row * 0.42, 24, 34), self::clamp($row * 0.36, 20, 30), 0, 130, $radius, 140, 16, 0);
     }
 
     /** Fila d'un resultat. */

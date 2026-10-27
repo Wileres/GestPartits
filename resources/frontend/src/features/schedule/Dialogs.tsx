@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ArrowRight } from 'lucide-react';
 import { useState } from 'react';
 import { scheduleApi, type PlacementSummary, type PresentedConflict, type ProposalSummary, type ScheduleData, type VersionChange } from '@/api/schedule';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { LoadingState } from '@/components/QueryState';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -83,7 +84,20 @@ export function ProposalDialog({ proposal, teamName, onClose }: { proposal: Prop
     );
 }
 
-export function VersionsDialog({ open, schedule, onClose }: { open: boolean; schedule: ScheduleData; onClose: () => void }) {
+export function VersionsDialog({
+    open,
+    schedule,
+    pending,
+    onRestore,
+    onClose,
+}: {
+    open: boolean;
+    schedule: ScheduleData;
+    pending: boolean;
+    onRestore: (versionId: number) => void;
+    onClose: () => void;
+}) {
+    const [toRestore, setToRestore] = useState<ScheduleData['versions'][number] | null>(null);
     const versions = [...schedule.versions].reverse();
     const [selection, setSelection] = useState<{ from: number | null; to: number | null }>({ from: null, to: null });
     const from = selection.from ?? versions[1]?.id ?? null;
@@ -95,6 +109,7 @@ export function VersionsDialog({ open, schedule, onClose }: { open: boolean; sch
     });
 
     return (
+        <>
         <Dialog open={open} onOpenChange={(value) => !value && onClose()}>
             <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-3xl">
                 <DialogHeader>
@@ -108,6 +123,7 @@ export function VersionsDialog({ open, schedule, onClose }: { open: boolean; sch
                                 <TableHead>{t('schedule.before')}</TableHead>
                                 <TableHead>{t('schedule.after')}</TableHead>
                                 <TableHead>{t('schedule.versions')}</TableHead>
+                                <TableHead />
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -142,6 +158,13 @@ export function VersionsDialog({ open, schedule, onClose }: { open: boolean; sch
                                             {version.created_by ?? '—'} · {formatDateTime(version.created_at)}
                                         </span>
                                     </TableCell>
+                                    <TableCell>
+                                        {!version.is_current && (
+                                            <Button variant="outline" size="sm" disabled={pending} onClick={() => setToRestore(version)} aria-label={`${t('schedule.restore')} ${version.number}`}>
+                                                {t('schedule.restore')}
+                                            </Button>
+                                        )}
+                                    </TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
@@ -153,6 +176,19 @@ export function VersionsDialog({ open, schedule, onClose }: { open: boolean; sch
                 </DialogFooter>
             </DialogContent>
         </Dialog>
+        <ConfirmDialog
+            open={toRestore !== null}
+            title={t('schedule.restoreTitle')}
+            description={`${t('schedule.restoreHelp')} ${toRestore?.kind === 'confirmation' ? '' : t('schedule.restoreHelpDraft')}`.trim()}
+            confirmLabel={t('schedule.restore')}
+            pending={pending}
+            onCancel={() => setToRestore(null)}
+            onConfirm={() => {
+                if (toRestore !== null) onRestore(toRestore.id);
+                setToRestore(null);
+            }}
+        />
+        </>
     );
 }
 

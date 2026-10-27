@@ -1,4 +1,5 @@
 import { DndContext, DragOverlay, PointerSensor, TouchSensor, useSensor, useSensors, type DragEndEvent, type DragOverEvent, type DragStartEvent } from '@dnd-kit/core';
+import { useQueryClient } from '@tanstack/react-query';
 import { CalendarDays, CheckCircle2, History, ImageIcon, MessageCircle, Save, Sparkles, Undo2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
@@ -63,6 +64,7 @@ const statusBadge: Record<ScheduleData['status'], string> = {
 function ScheduleBoard({ matchdayId, reference }: { matchdayId: number; reference: ReferenceData }) {
     const { data: schedule, isPending, isError } = useSchedule(matchdayId);
     const { data: teams = [] } = useTeams();
+    const queryClient = useQueryClient();
     const actions = useScheduleActions(matchdayId, schedule);
 
     const [dragging, setDragging] = useState<Match | null>(null);
@@ -110,7 +112,7 @@ function ScheduleBoard({ matchdayId, reference }: { matchdayId: number; referenc
     const stateOf = (match: Match) => conflictsByMatch.get(match.id) ?? { state: 'valid' as CardState, count: 0 };
     const areaId = (code: Area) => reference.field_areas.find((a) => a.code === code)?.id ?? null;
     const teamOf = (match: Match): Team | undefined => teams.find((team) => team.id === match.team_id);
-    const busy = actions.propose.isPending || actions.save.isPending || actions.undo.isPending || actions.confirm.isPending || actions.move.isPending;
+    const busy = actions.propose.isPending || actions.save.isPending || actions.undo.isPending || actions.restore.isPending || actions.confirm.isPending || actions.move.isPending;
 
     const openSheet = (match: Match) => {
         const team = teamOf(match);
@@ -297,7 +299,22 @@ function ScheduleBoard({ matchdayId, reference }: { matchdayId: number; referenc
             <MoveDialog match={moving} input={schedule.input} reference={reference} pending={actions.move.isPending} onMove={moveTo} onClose={() => setMoving(null)} />
             <MatchSheet target={sheet} matchday={schedule.matchday} reference={reference} onClose={() => setSheet(null)} />
             <ProposalDialog proposal={proposal} teamName={(id) => schedule.matches.find((m) => m.id === id)?.team.name ?? String(id)} onClose={() => setProposal(null)} />
-            <VersionsDialog open={versionsOpen} schedule={schedule} onClose={() => setVersionsOpen(false)} />
+            <VersionsDialog
+                open={versionsOpen}
+                schedule={schedule}
+                pending={actions.restore.isPending}
+                onRestore={(versionId) =>
+                    actions.restore.mutate(versionId, {
+                        onSuccess: () => {
+                            setVersionsOpen(false);
+                            toast.success(t('schedule.restored'));
+                            // Les imatges i els avisos vigents depenen de la versió confirmada.
+                            void queryClient.invalidateQueries({ queryKey: ['schedules'] });
+                        },
+                    })
+                }
+                onClose={() => setVersionsOpen(false)}
+            />
             <ImagesDialog scheduleId={schedule.id} open={imagesOpen} onClose={() => setImagesOpen(false)} />
             <ConfirmScheduleDialog
                 open={confirmOpen}

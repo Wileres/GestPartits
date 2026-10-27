@@ -40,6 +40,11 @@ class ScheduleController extends Controller
         return new ScheduleResource($this->schedules->undo($schedule, $request->version()));
     }
 
+    public function restore(ScheduleVersionRequest $request, Schedule $schedule, ScheduleVersion $scheduleVersion): ScheduleResource
+    {
+        return new ScheduleResource($this->schedules->restoreVersion($schedule, $scheduleVersion, $request->version()));
+    }
+
     public function confirm(ScheduleVersionRequest $request, Schedule $schedule): ScheduleResource
     {
         return new ScheduleResource($this->schedules->confirm($schedule, $request->version()));
