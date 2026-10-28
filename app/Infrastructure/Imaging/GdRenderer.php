@@ -34,16 +34,17 @@ class GdRenderer implements ScheduleImageRenderer
         $rowHeight = $m->row;
         $width = $format->width();
         $y = $format->header();
-        $previousHome = null;
+        $previous = null;
 
-        foreach ($page->entries as $index => $entry) {
-            // Títol petit de cada grup («A casa» / «A fora»).
-            if ($page->poster->grouped && ($index === 0 || $entry->home !== $previousHome)) {
-                imagettftext($image, 24, 0, 68, $y + 36, $white, $this->boldFont, mb_strtoupper($entry->home ? LayoutPlanner::HOME_LABEL : LayoutPlanner::AWAY_LABEL));
+        foreach ($page->entries as $entry) {
+            // Títol petit de cada grup («Pic del bac» / «Visitant») o de cada dia.
+            $heading = LayoutPlanner::headingLabel($entry, $previous, $page->poster->grouped);
+            $previous = $entry;
+            if ($heading !== null) {
+                imagettftext($image, 24, 0, 68, $y + 36, $white, $this->boldFont, mb_strtoupper($heading));
                 imagefilledrectangle($image, 230, $y + 25, $width - 68, $y + 27, $white);
                 $y += LayoutPlanner::HEADING + LayoutPlanner::ROW_GAP;
             }
-            $previousHome = $entry->home;
 
             imagefilledrectangle($image, 56, $y, $width - 56, $y + $rowHeight, $white);
             $middle = $y + (int) ($rowHeight / 2);
@@ -51,13 +52,9 @@ class GdRenderer implements ScheduleImageRenderer
             $badgeX = $width - 56 - 24 - $m->badgeWidth;
             $badge = mb_strtoupper($entry->home ? LayoutPlanner::HOME_LABEL : LayoutPlanner::AWAY_LABEL);
 
-            // Hora (i convocatòria) centrades a la columna de l'hora; el punt de partida del text és la línia de base.
+            // Hora centrada a la columna de l'hora (la convocatòria no hi surt); el punt de partida del text és la línia de base.
             $timeSize = $m->time * 0.75;
-            $withCall = $m->density === RowMetrics::FULL && $entry->callTime !== null;
-            $this->centered($image, $timeSize, $withCall ? $middle - 2 : $middle + (int) ($timeSize * 0.36), $primary, $this->boldFont, $entry->kickoff, 56 + 32, $m->timeWidth);
-            if ($withCall) {
-                $this->centered($image, $m->call * 0.75, $middle + (int) ($m->call * 1.1), $muted, $this->regularFont, 'Conv. '.$entry->callTime, 56 + 32, $m->timeWidth);
-            }
+            $this->centered($image, $timeSize, $middle + (int) ($timeSize * 0.36), $primary, $this->boldFont, $entry->kickoff, 56 + 32, $m->timeWidth);
 
             if ($m->density === RowMetrics::TIGHT) {
                 $teamSize = $m->team * 0.75;

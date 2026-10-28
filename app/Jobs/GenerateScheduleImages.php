@@ -23,7 +23,7 @@ class GenerateScheduleImages implements ShouldBeUnique, ShouldQueue
     public int $timeout = 180;
 
     /**
-     * @param  array{group_home_away?: bool, format?: string, compress?: bool}  $options
+     * @param  array{group_home_away?: bool, format?: string, compress?: bool, joined?: bool}  $options
      */
     public function __construct(public readonly int $scheduleId, public readonly ?int $userId = null, public readonly array $options = []) {}
 

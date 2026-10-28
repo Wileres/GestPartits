@@ -115,6 +115,8 @@ export interface ImageOptions {
     format: ImageFormat;
     /** Tots els partits d'un dia en una sola imatge, amb les caixes estirades per omplir-la. */
     compress: boolean;
+    /** Tots els partits de la jornada en una sola imatge (si hi caben; si no, una per dia). */
+    joined: boolean;
 }
 
 export interface ResultImagesState {

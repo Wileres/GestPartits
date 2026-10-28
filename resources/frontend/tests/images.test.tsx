@@ -54,7 +54,7 @@ describe('imatges del calendari', () => {
 
         await waitFor(() => expect(calls.some((c) => c.url === '/api/schedules/3/images' && c.init.method === 'POST')).toBe(true));
         const post = calls.find((c) => c.url === '/api/schedules/3/images' && c.init.method === 'POST');
-        expect(JSON.parse(String(post?.init.body))).toEqual({ group_home_away: true, format: 'story', compress: false });
+        expect(JSON.parse(String(post?.init.body))).toEqual({ group_home_away: true, format: 'story', compress: false, joined: false });
     });
 
     it('permet triar el format de publicació d’Instagram i comprimir els partits d’un dia', async () => {
@@ -81,7 +81,7 @@ describe('imatges del calendari', () => {
 
         await waitFor(() => expect(calls.some((c) => c.url === '/api/schedules/3/images' && c.init.method === 'POST')).toBe(true));
         const post = calls.find((c) => c.url === '/api/schedules/3/images' && c.init.method === 'POST');
-        expect(JSON.parse(String(post?.init.body))).toEqual({ group_home_away: false, format: 'post', compress: true });
+        expect(JSON.parse(String(post?.init.body))).toEqual({ group_home_away: false, format: 'post', compress: true, joined: false });
     });
 
     it('mostra l’última generació i en deixa esborrar una imatge amb confirmació', async () => {

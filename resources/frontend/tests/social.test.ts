@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { matchDayLayout, TEXT_AREA } from '@/features/social/drawMatchDay';
 import { drawPost, GRADIENT_START, type PostOptions } from '@/features/social/drawPost';
 import {
     adjustmentsFilter, clampFraming, coverScale, DEFAULT_FRAMING, imagePlacement, MAX_ZOOM, NO_ADJUSTMENTS, POST_SIZES, rotatedSize,
@@ -144,5 +145,17 @@ describe('publicació amb el resultat', () => {
         expect((ctx as unknown as { filter: string }).filter).toBe('none');
         const rotate = log.find((entry) => entry.op === 'rotate');
         expect(rotate?.args[0]).toBeCloseTo(Math.PI / 2);
+    });
+});
+
+describe('cartell de «Dia de partit»', () => {
+    it('l’alçada de cada partit és proporcional al nombre de partits i mai surt del text', () => {
+        const few = matchDayLayout(1080, 1350, 2);
+        const many = matchDayLayout(1080, 1350, 8);
+
+        expect(many.blockHeight).toBeLessThan(few.blockHeight);
+        expect(many.textBottom).toBeLessThanOrEqual(1350 * TEXT_AREA + 0.001);
+        expect(many.fadeBottom).toBeGreaterThan(many.textBottom);
+        expect(matchDayLayout(1080, 1350, 0).blockHeight).toBe(0);
     });
 });

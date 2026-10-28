@@ -12,6 +12,8 @@ import { useMatches } from '@/features/matches/useMatches';
 import { useMatchdaySelection } from '@/hooks/useMatchdaySelection';
 import { usePublicBranding } from '@/hooks/usePublicBranding';
 import { t } from '@/i18n/ca';
+import { isoWeekday, weekdayName } from '@/lib/dates';
+import { drawMatchDay, type MatchDayLine } from './drawMatchDay';
 import { drawPost, FONT_FAMILY } from './drawPost';
 import { clampFraming, DEFAULT_FRAMING, MAX_ZOOM, MIN_ZOOM, NO_ADJUSTMENTS, POST_SIZES, type Adjustments, type Framing, type PostFormat, type Rotation } from './postGeometry';
 
@@ -22,6 +24,7 @@ const DEFAULT_ACCENT = '#2f7bff';
 const KEY_STEP = 24;
 
 type Bitmap = HTMLImageElement;
+type Mode = 'result' | 'matchday';
 
 function loadImage(src: string): Promise<Bitmap> {
     return new Promise((resolve, reject) => {
@@ -40,6 +43,8 @@ async function loadFile(file: File): Promise<Bitmap> {
         URL.revokeObjectURL(url);
     }
 }
+
+const dayName = (iso: string) => weekdayName(isoWeekday(iso));
 
 const isAcceptable = (file: File) => ACCEPTED.includes(file.type) && file.size <= MAX_FILE_BYTES;
 
@@ -67,11 +72,39 @@ export function SocialImagePage() {
     const [opponent, setOpponent] = useState('');
     const [competition, setCompetition] = useState('');
     const [accent, setAccent] = useState(DEFAULT_ACCENT);
+    const [mode, setMode] = useState<Mode>('result');
+    const [header, setHeader] = useState(t('social.dayHeader'));
+    // Partits triats per al cartell de «Dia de partit»: sense tria, tots els de la jornada.
+    const [chosen, setChosen] = useState<{ matchdayId: number | null; ids: number[] } | null>(null);
     const [fontsReady, setFontsReady] = useState(() => document.fonts === undefined);
 
     const size = POST_SIZES[format];
     const withResult = useMemo(() => (matches.data ?? []).filter((match) => match.has_result), [matches.data]);
     const logoUrl = branding.data?.logo_url ?? null;
+    const dayMatches = useMemo(
+        () =>
+            (matches.data ?? [])
+                .filter((match) => match.status !== 'cancelled' && match.match_date !== null && match.kickoff_time !== null)
+                .sort((a, b) => `${a.match_date}${a.kickoff_time}`.localeCompare(`${b.match_date}${b.kickoff_time}`)),
+        [matches.data],
+    );
+    const selectedIds = chosen !== null && chosen.matchdayId === (selection.matchday?.id ?? null) ? chosen.ids : dayMatches.map((match) => match.id);
+    const selectedKey = selectedIds.join(',');
+    const dayLines = useMemo<MatchDayLine[]>(() => {
+        const ids = selectedKey === '' ? [] : selectedKey.split(',').map(Number);
+        const picked = dayMatches.filter((match) => ids.includes(match.id));
+        const severalDays = new Set(picked.map((match) => match.match_date)).size > 1;
+
+        return picked.map((match) => ({
+            team: match.team.name,
+            opponent: match.opponent ?? '',
+            time: (match.kickoff_time ?? '').slice(0, 5),
+            place: match.home_away === 'away' ? [match.venue_name, match.municipality].filter((part) => part !== null && part !== '').join(', ') : (match.field_area?.name ?? ''),
+            day: severalDays && match.match_date !== null ? dayName(match.match_date) : null,
+        }));
+    }, [dayMatches, selectedKey]);
+    const toggleMatch = (id: number) =>
+        setChosen({ matchdayId: selection.matchday?.id ?? null, ids: selectedIds.includes(id) ? selectedIds.filter((value) => value !== id) : [...selectedIds, id] });
 
     // L'escut del club (el mateix per a tots els equips), si n'hi ha.
     useEffect(() => {
@@ -108,6 +141,12 @@ export function SocialImagePage() {
         const ctx = canvas?.getContext('2d') ?? null;
         if (canvas === null || ctx === null || photo === null) return;
 
+        if (mode === 'matchday') {
+            drawMatchDay(ctx, { width: size.width, height: size.height, photo, framing, adjustments, accent, teamCrest, header, lines: dayLines });
+
+            return;
+        }
+
         drawPost(ctx, {
             width: size.width,
             height: size.height,
@@ -119,7 +158,7 @@ export function SocialImagePage() {
             teamCrest,
             opponentCrest,
         });
-    }, [photo, framing, adjustments, size, team, scoreTeam, scoreOpponent, opponent, competition, accent, teamCrest, opponentCrest, fontsReady]);
+    }, [mode, header, dayLines, photo, framing, adjustments, size, team, scoreTeam, scoreOpponent, opponent, competition, accent, teamCrest, opponentCrest, fontsReady]);
 
     const frame = useCallback(
         (next: Framing, image: Bitmap | null = photo, canvasSize = size) =>
@@ -210,7 +249,7 @@ export function SocialImagePage() {
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = `resultat-${(team || 'partit').normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}.png`;
+            link.download = mode === 'matchday' ? 'dia-de-partit.png' : `resultat-${(team || 'partit').normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}.png`;
             link.click();
             URL.revokeObjectURL(url);
             toast.success(t('social.downloaded'));
@@ -223,6 +262,15 @@ export function SocialImagePage() {
     return (
         <>
             <PageHeader title={t('social.title')} description={t('social.subtitle')} />
+
+            <div role="radiogroup" aria-label={t('social.mode')} className="mb-4 grid max-w-md gap-2 sm:grid-cols-2">
+                {(['result', 'matchday'] as const).map((value) => (
+                    <label key={value} className="flex cursor-pointer items-center justify-center rounded-md border px-3 py-2 text-sm has-checked:border-primary has-checked:bg-secondary has-checked:text-primary">
+                        <input type="radio" name="social-mode" className="sr-only" checked={mode === value} onChange={() => setMode(value)} />
+                        {t(`social.modes.${value}`)}
+                    </label>
+                ))}
+            </div>
 
             <div className="grid gap-6 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">
                 <div className="lg:sticky lg:top-6 lg:self-start">
@@ -237,7 +285,7 @@ export function SocialImagePage() {
                                     width={size.width}
                                     height={size.height}
                                     tabIndex={0}
-                                    aria-label={t('social.canvasLabel', { team: team.trim(), score })}
+                                    aria-label={mode === 'matchday' ? t('social.canvasLabelDay', { header: header.trim() }) : t('social.canvasLabel', { team: team.trim(), score })}
                                     className="h-full w-full cursor-grab touch-none active:cursor-grabbing"
                                     onPointerDown={onPointerDown}
                                     onPointerMove={onPointerMove}
@@ -324,6 +372,34 @@ export function SocialImagePage() {
                         </div>
                     </Card>
 
+                    {mode === 'matchday' ? (
+                    <Card className="gap-4 p-4">
+                        <h2 className="font-semibold">{t('social.daySection')}</h2>
+                        <MatchdaySelector selection={selection} />
+                        <FormField id="social-header" label={t('social.header')} help={t('social.headerHelp')}>
+                            <Input id="social-header" value={header} onChange={(e) => setHeader(e.target.value)} />
+                        </FormField>
+                        <fieldset className="grid gap-2">
+                            <legend className="mb-1 text-sm font-medium">{t('social.dayMatches')}</legend>
+                            {dayMatches.length === 0 && <p className="text-sm text-muted-foreground">{t('social.dayNoMatches')}</p>}
+                            {dayMatches.map((match) => (
+                                <label key={match.id} className="flex items-start gap-2 text-sm">
+                                    <input type="checkbox" className="mt-0.5 size-4 accent-primary" checked={selectedIds.includes(match.id)} onChange={() => toggleMatch(match.id)} />
+                                    <span>
+                                        {match.team.name} {t('social.versus')} {match.opponent ?? '—'}
+                                        <span className="block text-xs text-muted-foreground">
+                                            {dayName(match.match_date ?? '')} {(match.kickoff_time ?? '').slice(0, 5)}
+                                            {match.home_away === 'away' ? ` · ${match.venue_name ?? t('social.away')}` : match.field_area !== null ? ` · ${match.field_area.name}` : ''}
+                                        </span>
+                                    </span>
+                                </label>
+                            ))}
+                        </fieldset>
+                        <FormField id="social-color-day" label={t('social.color')}>
+                            <input id="social-color-day" type="color" value={accent} onChange={(e) => setAccent(e.target.value)} className="h-9 w-full cursor-pointer rounded-md border bg-transparent p-1" />
+                        </FormField>
+                    </Card>
+                    ) : (
                     <Card className="gap-4 p-4">
                         <h2 className="font-semibold">{t('social.resultSection')}</h2>
 
@@ -381,6 +457,7 @@ export function SocialImagePage() {
                             </FormField>
                         </div>
                     </Card>
+                    )}
                 </div>
             </div>
         </>

@@ -46,6 +46,8 @@ class ImageController extends Controller
             'format' => ['sometimes', Rule::enum(PosterFormat::class)],
             // Tots els partits d'un dia en una sola imatge, amb les caixes estirades.
             'compress' => ['sometimes', 'boolean'],
+            // Tots els partits de la jornada en una sola imatge (si no hi caben, una imatge per dia).
+            'joined' => ['sometimes', 'boolean'],
         ]);
 
         Cache::put(ImageService::pendingKey($schedule), true, now()->addMinutes(10));
@@ -53,6 +55,7 @@ class ImageController extends Controller
             'group_home_away' => (bool) ($options['group_home_away'] ?? false),
             'format' => $options['format'] ?? PosterFormat::Story->value,
             'compress' => (bool) ($options['compress'] ?? false),
+            'joined' => (bool) ($options['joined'] ?? false),
         ]);
 
         return $this->state($schedule->refresh(), 202);

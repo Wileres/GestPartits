@@ -135,4 +135,30 @@ describe('editor d’imatges per a xarxes socials', () => {
         await waitFor(() => expect(click).toHaveBeenCalled());
         expect(click.mock.contexts[0]).toHaveProperty('download', 'resultat-benjami-s10-b.png');
     });
+
+    it('«Dia de partit»: capçalera editable i tria dels partits de la jornada', async () => {
+        mockFetch(weekendServer(adminMe, (url) => withResults(url)));
+        const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
+        renderApp('/xarxes-socials');
+        const user = userEvent.setup();
+
+        await user.upload(await screen.findByLabelText('Tria una foto'), photo());
+        await user.click(await screen.findByRole('radio', { name: 'Dia de partit' }));
+
+        // Per defecte la capçalera és «Dia de partit» i tots els partits són triats.
+        const header = screen.getByLabelText('Text de la capçalera');
+        expect(header).toHaveValue('Dia de partit');
+        const match = await screen.findByRole('checkbox', { name: /Cadet A vs UE Figueres/ });
+        expect(match).toBeChecked();
+        await user.click(match);
+        expect(match).not.toBeChecked();
+
+        await user.clear(header);
+        await user.type(header, 'Aquest diumenge');
+        expect(await screen.findByLabelText('Cartell per a xarxes socials: Aquest diumenge')).toBeInTheDocument();
+
+        await user.click(screen.getByRole('button', { name: 'Baixa la imatge' }));
+        await waitFor(() => expect(click).toHaveBeenCalled());
+        expect(click.mock.contexts[0]).toHaveProperty('download', 'dia-de-partit.png');
+    });
 });

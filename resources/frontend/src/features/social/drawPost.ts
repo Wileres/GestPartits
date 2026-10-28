@@ -34,6 +34,24 @@ export const GRADIENT_START = 0.5;
  * el nom de l'equip, el resultat (en el color indicat) amb els escuts i la competició.
  */
 export function drawPost(ctx: CanvasRenderingContext2D, options: PostOptions): void {
+    const { width, height } = options;
+
+    drawPhoto(ctx, options);
+
+    // Difuminat negre de baix.
+    const top = Math.round(height * GRADIENT_START);
+    const gradient = ctx.createLinearGradient(0, top, 0, height);
+    gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+    gradient.addColorStop(0.55, 'rgba(0, 0, 0, 0.78)');
+    gradient.addColorStop(1, 'rgba(0, 0, 0, 0.96)');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, top, width, height - top);
+
+    drawResult(ctx, options, width, height);
+}
+
+/** Fons negre i la foto enquadrada i ajustada (sense cap text ni difuminat). */
+export function drawPhoto(ctx: CanvasRenderingContext2D, options: Pick<PostOptions, 'width' | 'height' | 'photo' | 'framing' | 'adjustments'>): void {
     const { width, height, photo, framing, adjustments } = options;
 
     ctx.clearRect(0, 0, width, height);
@@ -49,20 +67,9 @@ export function drawPost(ctx: CanvasRenderingContext2D, options: PostOptions): v
     ctx.drawImage(photo, -place.width / 2, -place.height / 2, place.width, place.height);
     ctx.restore();
     ctx.filter = 'none';
-
-    // Difuminat negre de baix.
-    const top = Math.round(height * GRADIENT_START);
-    const gradient = ctx.createLinearGradient(0, top, 0, height);
-    gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
-    gradient.addColorStop(0.55, 'rgba(0, 0, 0, 0.78)');
-    gradient.addColorStop(1, 'rgba(0, 0, 0, 0.96)');
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, top, width, height - top);
-
-    drawResult(ctx, options, width, height);
 }
 
-function fitFont(ctx: CanvasRenderingContext2D, value: string, weight: number, start: number, maxWidth: number): number {
+export function fitFont(ctx: CanvasRenderingContext2D, value: string, weight: number, start: number, maxWidth: number): number {
     let size = start;
     ctx.font = `${weight} ${size}px ${FONT_FAMILY}`;
     while (size > 18 && ctx.measureText(value).width > maxWidth) {

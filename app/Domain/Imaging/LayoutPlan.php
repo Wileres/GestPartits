@@ -11,6 +11,8 @@ final readonly class LayoutPlan
 
     public const WARNING_PAGINATED = 'paginated';
 
+    public const WARNING_NOT_JOINED = 'not_joined';
+
     public const WARNING_LONG_NAMES = 'long_names';
 
     /**

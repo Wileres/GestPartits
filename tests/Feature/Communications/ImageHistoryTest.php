@@ -170,7 +170,7 @@ class ImageHistoryTest extends TestCase
         $this->assertTrue($sunday->poster->grouped);
         // Fora a les 10:00 i casa a les 12:00: agrupat, la casa va primer.
         $this->assertSame([true, false], array_map(fn ($e) => $e->home, $sunday->entries));
-        $this->assertSame(['group_home_away' => true, 'format' => 'story', 'compress' => false], GeneratedImage::query()->latest('id')->first()->options);
+        $this->assertSame(['group_home_away' => true, 'format' => 'story', 'compress' => false, 'joined' => false], GeneratedImage::query()->latest('id')->first()->options);
     }
 
     public function test_the_schedule_can_be_generated_as_a_compressed_instagram_post(): void
@@ -190,7 +190,42 @@ class ImageHistoryTest extends TestCase
         }
         $images = GeneratedImage::query()->get();
         $this->assertSame([[1080, 1350], [1080, 1350]], $images->map(fn ($i) => [$i->width, $i->height])->all());
-        $this->assertSame(['group_home_away' => false, 'format' => 'post', 'compress' => true], $images->first()->options);
+        $this->assertSame(['group_home_away' => false, 'format' => 'post', 'compress' => true, 'joined' => false], $images->first()->options);
+    }
+
+    public function test_the_whole_matchday_can_go_in_a_single_image(): void
+    {
+        $matchday = $this->weekend();
+        $this->matchesFor($matchday);
+        $schedule = $this->confirmed($matchday);
+
+        $this->spa()->postJson("/api/schedules/{$schedule->id}/images", ['joined' => true])->assertStatus(202);
+
+        $this->assertCount(1, $this->renderer->rendered);
+        $poster = $this->renderer->rendered[0]->poster;
+        $this->assertSame('Jornada', $poster->title);
+        $this->assertSame(['Dissabte 17/10', 'Dissabte 17/10', 'Diumenge 18/10'], array_map(fn ($e) => $e->day, $poster->entries));
+        $image = GeneratedImage::query()->firstOrFail();
+        $this->assertTrue($image->options['joined']);
+        $this->assertSame('fill', $this->renderer->rendered[0]->mode);
+    }
+
+    public function test_when_the_matchday_does_not_fit_in_one_image_it_is_split_by_day_with_a_warning(): void
+    {
+        $matchday = $this->weekend();
+        $matches = $this->matchesFor($matchday);
+        $schedule = $this->confirmed($matchday);
+        // 14 partits més el dissabte (un cop confirmada): no caben en una sola imatge.
+        foreach (range(1, 14) as $i) {
+            $matches['alevi']->replicate()->fill(['kickoff_time' => '12:00'])->save();
+        }
+
+        $this->spa()->postJson("/api/schedules/{$schedule->id}/images", ['joined' => true])->assertStatus(202);
+
+        $this->assertCount(2, array_unique(array_map(fn ($p) => $p->poster->date, $this->renderer->rendered)));
+        $first = GeneratedImage::query()->orderBy('id')->firstOrFail();
+        $this->assertFalse($first->options['joined']);
+        $this->assertSame('not_joined', $first->warnings[0]['code']);
     }
 
     public function test_the_default_is_a_story_and_unknown_formats_are_rejected(): void

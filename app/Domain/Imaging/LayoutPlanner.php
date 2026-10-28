@@ -125,20 +125,44 @@ final class LayoutPlanner
      */
     public static function headings(array $entries, bool $grouped): int
     {
-        if (! $grouped) {
-            return 0;
-        }
-
         $headings = 0;
         $previous = null;
-        foreach ($entries as $index => $entry) {
-            if ($index === 0 || $entry->home !== $previous) {
+        foreach ($entries as $entry) {
+            if (self::headingLabel($entry, $previous, $grouped) !== null) {
                 $headings++;
             }
-            $previous = $entry->home;
+            $previous = $entry;
         }
 
         return $headings;
+    }
+
+    /**
+     * Títol que cal dibuixar abans d'aquest partit, o null si no n'hi va cap: el dia (quan la imatge reuneix tota la
+     * jornada) o «Pic del bac» / «Visitant» (quan van agrupats).
+     */
+    public static function headingLabel(PosterEntry $entry, ?PosterEntry $previous, bool $grouped): ?string
+    {
+        if ($entry->day !== null) {
+            return $previous === null || $previous->day !== $entry->day ? $entry->day : null;
+        }
+
+        if (! $grouped) {
+            return null;
+        }
+
+        return $previous === null || $previous->home !== $entry->home ? ($entry->home ? self::HOME_LABEL : self::AWAY_LABEL) : null;
+    }
+
+    /**
+     * Pla d'una sola imatge amb tots els partits de la jornada (files estirades), o null si no hi caben ni a
+     * l'alçada mínima.
+     */
+    public function planJoined(DayPoster $poster): ?LayoutPlan
+    {
+        $plan = $this->plan($poster);
+
+        return count($plan->pages) === 1 ? $plan : null;
     }
 
     /**

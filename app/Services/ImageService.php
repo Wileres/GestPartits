@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Domain\Imaging\DayPoster;
+use App\Domain\Imaging\LayoutPlan;
 use App\Domain\Imaging\LayoutPlanner;
 use App\Domain\Imaging\PosterEntry;
 use App\Domain\Imaging\PosterFormat;
@@ -109,6 +110,30 @@ class ImageService
     }
 
     /**
+     * Pòster únic amb tots els partits de la jornada (cada dia amb el seu títol), o null si no hi ha cap partit.
+     */
+    public function joinedPoster(Schedule $schedule, PosterFormat $format = PosterFormat::Story): ?DayPoster
+    {
+        $days = $this->posters($schedule, false, true, $format);
+        if ($days === []) {
+            return null;
+        }
+
+        $entries = [];
+        foreach ($days as $poster) {
+            $label = $poster->title.' '.substr($poster->dateLabel, 0, 5);
+            foreach ($poster->entries as $e) {
+                $entries[] = new PosterEntry($e->kickoff, $e->callTime, $e->team, $e->opponent, $e->home, $e->place, $e->field, $label);
+            }
+        }
+
+        $first = $days[0]->dateLabel;
+        $last = $days[array_key_last($days)]->dateLabel;
+
+        return new DayPoster($days[0]->date, 'Jornada', $first === $last ? $first : "{$first} – {$last}", '', $entries, false, true, $format);
+    }
+
+    /**
      * Pòster amb els resultats dels partits acabats de la jornada (en l'ordre dels equips del club).
      */
     public function resultsPoster(Matchday $matchday, PosterFormat $format = PosterFormat::Post): ResultsPoster
@@ -139,7 +164,7 @@ class ImageService
      * Genera i desa les imatges del calendari de la versió confirmada. Cada generació és un lot nou:
      * les anteriors es conserven a l'històric.
      *
-     * @param  array{group_home_away?: bool, format?: string, compress?: bool}  $options
+     * @param  array{group_home_away?: bool, format?: string, compress?: bool, joined?: bool}  $options
      * @return Collection<int, GeneratedImage>
      */
     public function generate(Schedule $schedule, ?int $userId = null, array $options = []): Collection
@@ -154,8 +179,26 @@ class ImageService
         $batch = (string) Str::ulid();
         $rendered = [];
 
-        foreach ($this->posters($schedule, $grouped, $compress, $format) as $poster) {
-            $plan = $this->planner->plan($poster);
+        // Tots els partits de la jornada en una sola imatge, si hi caben; si no, una imatge per dia.
+        $joined = false;
+        $units = [];
+        if ((bool) ($options['joined'] ?? false)) {
+            $poster = $this->joinedPoster($schedule, $format);
+            $plan = $poster === null ? null : $this->planner->planJoined($poster);
+            $joined = $plan !== null;
+            $units = $joined ? [[$poster, $plan]] : [];
+        }
+
+        if (! $joined) {
+            foreach ($this->posters($schedule, $grouped, $compress, $format) as $poster) {
+                $units[] = [$poster, $this->planner->plan($poster)];
+            }
+            if ((bool) ($options['joined'] ?? false) && $units !== []) {
+                $units[0][1] = new LayoutPlan($units[0][1]->pages, [['code' => LayoutPlan::WARNING_NOT_JOINED, 'params' => []], ...$units[0][1]->warnings]);
+            }
+        }
+
+        foreach ($units as [$poster, $plan]) {
 
             foreach ($plan->pages as $page) {
                 $rendered[] = $this->store(
@@ -173,10 +216,10 @@ class ImageService
         $this->persist($rendered, [
             'kind' => GeneratedImage::KIND_SCHEDULE, 'matchday_id' => $schedule->matchday_id, 'batch_id' => $batch,
             'schedule_id' => $schedule->id, 'schedule_version_id' => (int) $schedule->confirmed_version_id,
-            'options' => ['group_home_away' => $grouped, 'format' => $format->value, 'compress' => $compress], 'created_by' => $userId,
+            'options' => ['group_home_away' => $joined ? false : $grouped, 'format' => $format->value, 'compress' => $compress || $joined, 'joined' => $joined], 'created_by' => $userId,
         ]);
 
-        $this->audit->log('images.generated', $schedule, null, ['version_id' => $schedule->confirmed_version_id, 'batch' => $batch, 'images' => count($rendered), 'group_home_away' => $grouped, 'format' => $format->value, 'compress' => $compress], $userId);
+        $this->audit->log('images.generated', $schedule, null, ['version_id' => $schedule->confirmed_version_id, 'batch' => $batch, 'images' => count($rendered), 'group_home_away' => $grouped, 'format' => $format->value, 'compress' => $compress, 'joined' => $joined], $userId);
 
         return $this->batchImages($batch);
     }

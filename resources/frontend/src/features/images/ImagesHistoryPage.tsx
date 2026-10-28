@@ -28,7 +28,8 @@ function optionsLabel(batch: ImageBatch): string {
 
     return [
         t(`images.formats.${options?.format === 'post' ? 'post' : 'story'}`),
-        options?.compress === true ? t('images.optionCompressed') : null,
+        options?.joined === true ? t('images.optionJoined') : null,
+        options?.compress === true && options?.joined !== true ? t('images.optionCompressed') : null,
         options?.group_home_away === true ? t('images.optionGrouped') : t('images.optionPlain'),
     ]
         .filter((part) => part !== null)

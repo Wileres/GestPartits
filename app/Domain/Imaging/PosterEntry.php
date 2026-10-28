@@ -15,5 +15,7 @@ final readonly class PosterEntry
         public bool $home,
         public ?string $place,
         public ?string $field = null,
+        /** Dia («Dissabte 17/10») quan la imatge reuneix els partits de tota la jornada: surt com a títol de cada dia. */
+        public ?string $day = null,
     ) {}
 }

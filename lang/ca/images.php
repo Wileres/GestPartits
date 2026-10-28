@@ -9,6 +9,7 @@ return [
     'warnings' => [
         'compact' => 'Hi ha :count partits: s\'ha fet servir el disseny compacte.',
         'paginated' => 'Hi ha :count partits: no caben en una imatge i s\'han fet :pages pàgines.',
+        'not_joined' => 'No hi caben tots els partits de la jornada en una sola imatge: s\'ha fet una imatge per dia.',
         'long_names' => 'Hi ha noms de més de :limit caràcters: es retallen amb «…».',
     ],
 ];

@@ -35,18 +35,15 @@
 <div class="stripes"></div>
 @include('images.partials.header', ['title' => $page->poster->title, 'dateLabel' => $page->poster->dateLabel, 'subtitle' => $page->poster->subtitle])
 <main>
-    @php $previousHome = null; @endphp
+    @php $previous = null; @endphp
     @foreach ($page->entries as $entry)
-        @if ($page->poster->grouped && ($loop->first || $entry->home !== $previousHome))
-            <h2 class="group">{{ $entry->home ? \App\Domain\Imaging\LayoutPlanner::HOME_LABEL : \App\Domain\Imaging\LayoutPlanner::AWAY_LABEL }}</h2>
+        @php $heading = \App\Domain\Imaging\LayoutPlanner::headingLabel($entry, $previous, $page->poster->grouped); $previous = $entry; @endphp
+        @if ($heading !== null)
+            <h2 class="group">{{ $heading }}</h2>
         @endif
-        @php $previousHome = $entry->home; @endphp
         <div class="row">
             <div class="time">
                 <strong>{{ $entry->kickoff }}</strong>
-                @if ($full && $entry->callTime !== null)
-                    <span>Conv. {{ $entry->callTime }}</span>
-                @endif
             </div>
             <div class="divider"></div>
             <div class="match">

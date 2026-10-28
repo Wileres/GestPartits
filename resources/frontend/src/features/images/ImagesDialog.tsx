@@ -21,6 +21,7 @@ export function ImagesDialog({ scheduleId, open, onClose }: { scheduleId: number
     const [grouped, setGrouped] = useState(false);
     const [format, setFormat] = useState<ImageFormat>('story');
     const [compress, setCompress] = useState(false);
+    const [joined, setJoined] = useState(false);
     const [toDelete, setToDelete] = useState<GeneratedImage | 'batch' | null>(null);
     const state = useQuery({
         queryKey: imagesKey(scheduleId),
@@ -29,7 +30,7 @@ export function ImagesDialog({ scheduleId, open, onClose }: { scheduleId: number
         refetchInterval: (query) => (query.state.data?.generating === true ? 2000 : false),
     });
     const generate = useMutation({
-        mutationFn: () => imagesApi.generate(scheduleId, { group_home_away: grouped, format, compress }),
+        mutationFn: () => imagesApi.generate(scheduleId, { group_home_away: grouped, format, compress, joined }),
         onSuccess: (data) => {
             queryClient.setQueryData(imagesKey(scheduleId), data);
             void queryClient.invalidateQueries({ queryKey: IMAGE_HISTORY_KEY });
@@ -71,6 +72,13 @@ export function ImagesDialog({ scheduleId, open, onClose }: { scheduleId: number
                                 <span>
                                     {t('images.compress')}
                                     <span className="block text-xs text-muted-foreground">{t('images.compressHelp')}</span>
+                                </span>
+                            </label>
+                            <label className="flex items-start gap-2 text-sm">
+                                <input type="checkbox" className="mt-0.5 size-4 accent-primary" checked={joined} onChange={(e) => setJoined(e.target.checked)} />
+                                <span>
+                                    {t('images.joined')}
+                                    <span className="block text-xs text-muted-foreground">{t('images.joinedHelp')}</span>
                                 </span>
                             </label>
                             <label className="flex items-start gap-2 text-sm">
