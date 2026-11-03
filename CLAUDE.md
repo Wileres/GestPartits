@@ -24,7 +24,7 @@ Estructura:
 - `app/Http` (Controllers/Api, Requests, Resources), `app/Policies`, `app/Models` (el modelo de `matches` es `GameMatch`), `app/Jobs` (`GenerateScheduleImages`, `GenerateResultsImages`, `SendWhatsAppMessage`), `app/Infrastructure/{Imaging,WhatsApp}` (renderizadores y proveedores), `app/Support` (`CallTime`, `TeamName`, `MailSettings`, `ClubSettings`, `ClubBranding`, `CatalanDate`…).
 - `resources/frontend/src/{api,app,components,domain,features,hooks,i18n,lib}` — `features/*` por módulo (schedule, matches, teams, seasons, notifications, images, social, mail, appearance, help…). **Todos los textos** en `i18n/ca.ts`.
 - `resources/views/images/*` — plantillas Blade de las imágenes (Chromium). `GdRenderer` replica el diseño con GD y debe mantenerse alineado.
-- `lang/ca` — mensajes del backend. `tests/` (PHPUnit sobre MariaDB) y `resources/frontend/tests/` (Vitest). `docs/` — fases 1–8, `DECISIONS.md` (D-001…D-085, **léelo antes de cambiar comportamiento**) y `proves.md`. `deploy/` — plantillas nginx/apache/systemd/cron/backup.
+- `lang/ca` — mensajes del backend. `tests/` (PHPUnit sobre MariaDB) y `resources/frontend/tests/` (Vitest). `docs/` — fases 1–8, `DECISIONS.md` (D-001…D-086, **léelo antes de cambiar comportamiento**) y `proves.md`. `deploy/` — plantillas nginx/apache/systemd/cron/backup.
 
 Flujo de datos principal: temporada → jornada (`matchdays`) → partidos (`matches`) → programación (`schedules`, con `schedule_versions` = instantáneas JSON) → confirmación (`confirmed_version_id`) → imágenes (`generated_images`, ligadas a la versión confirmada) y avisos (`whatsapp_messages`).
 

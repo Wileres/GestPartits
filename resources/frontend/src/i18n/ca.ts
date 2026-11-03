@@ -257,7 +257,7 @@ export const ca = {
                     intro: 'Amb els resultats dels partits es pot fer una imatge amb el resum de la jornada.',
                     items: [
                         'Indica el resultat a la fitxa de cada partit quan hagi acabat (gols de l’equip i del rival). Cal posar els dos números.',
-                        'A Partits, el botó «Imatge de resultats» genera una sola imatge amb tots els partits que ja tenen resultat, ordenats com els equips del club. Pots triar el format: publicació d’Instagram (1080 × 1350, per defecte) o història (1080 × 1920).',
+                        'A Partits, el botó «Imatge de resultats» genera una sola imatge amb tots els partits que ja tenen resultat, ordenats a l’inrevés que els equips del club. Pots triar el format: publicació d’Instagram (1080 × 1350, per defecte) o història (1080 × 1920).',
                         'Les files dels resultats s’estiren per omplir tota la imatge: amb pocs resultats són més altes i amb molts més baixes. Només si no hi caben ni a l’alçada mínima es reparteixen en diverses imatges, equilibrades.',
                         'Els partits sense resultat, els cancel·lats i els que no surten a la imatge no hi apareixen.',
                         'La imatge de resultats també es conserva a l’històric d’imatges.',

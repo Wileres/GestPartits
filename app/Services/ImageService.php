@@ -134,7 +134,7 @@ class ImageService
     }
 
     /**
-     * Pòster amb els resultats dels partits acabats de la jornada (en l'ordre dels equips del club).
+     * Pòster amb els resultats dels partits acabats de la jornada (en l'ordre invers al dels equips del club).
      */
     public function resultsPoster(Matchday $matchday, PosterFormat $format = PosterFormat::Post): ResultsPoster
     {
@@ -144,7 +144,8 @@ class ImageService
             ->where('show_in_image', true)
             ->whereNotNull('score_team')->whereNotNull('score_opponent')
             ->get()
-            ->sortBy(fn (GameMatch $m) => [$m->team->sort_order, $m->id]);
+            // Ordre invers al dels equips del club.
+            ->sortByDesc(fn (GameMatch $m) => [$m->team->sort_order, $m->id]);
 
         $entries = $matches->map(fn (GameMatch $m) => new ResultEntry(
             team: $m->team->name,

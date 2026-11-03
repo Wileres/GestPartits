@@ -268,7 +268,7 @@ class ImageHistoryTest extends TestCase
         $page = $this->renderer->renderedResults[0];
         $this->assertSame('Resultats', $page->poster->title);
         $this->assertSame('17/10/2026 – 18/10/2026', $page->poster->dateLabel);
-        $this->assertSame([['Aleví A', 3, 1], ['Cadet A', 0, 2]], array_map(fn ($e) => [$e->team, $e->scoreTeam, $e->scoreOpponent], $page->entries));
+        $this->assertSame([['Cadet A', 0, 2], ['Aleví A', 3, 1]], array_map(fn ($e) => [$e->team, $e->scoreTeam, $e->scoreOpponent], $page->entries));
 
         $image = GeneratedImage::query()->firstOrFail();
         $this->assertSame('results', $image->kind);
