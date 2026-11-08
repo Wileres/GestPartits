@@ -22,7 +22,7 @@ import { formatWeekdayDate, matchdayDates } from '@/lib/dates';
 import { emptyToNull, errorMessage, numberOrNull } from '@/lib/errors';
 import { applyServerErrors } from '@/lib/forms';
 import { describePreference } from '@/lib/rules';
-import { fromMinutes, isOnGrid, isTime, isWithin, toMinutes } from '@/lib/time';
+import { callOffset, fromMinutes, isOnGrid, isTime, isWithin, toMinutes } from '@/lib/time';
 import { useDeleteMatch, useSaveMatch } from './useMatches';
 
 const statuses = ['proposed', 'confirmed', 'cancelled'] as const;
@@ -197,15 +197,16 @@ function MatchForm({ team, match, suggestedHomeAway = null, matchday, reference,
             : null;
     const occupationEnd = isHome && isTime(kickoff) && Number.isFinite(duration + post) ? fromMinutes(toMinutes(kickoff) + duration + post) : null;
 
-    // Convocatòria per defecte (una hora abans del partit, a casa i a fora): es proposa quan no n'hi ha cap
+    // Convocatòria per defecte (una hora abans del partit; a futbol 7, 45 min a casa i 1 h 45 min a fora): es proposa quan no n'hi ha cap
     // i segueix els canvis d'hora mentre sigui la per defecte; una convocatòria posada a mà es respecta.
     const followCall = (event: { target: { value: string } }) => {
         const time = event.target.value;
         if (!isTime(time)) return;
         const call = getValues('call_time');
-        const previousDefault = isTime(kickoff) ? fromMinutes(Math.max(0, toMinutes(kickoff) - 60)) : null;
+        const offset = callOffset(format, homeAway);
+        const previousDefault = isTime(kickoff) ? fromMinutes(Math.max(0, toMinutes(kickoff) - offset)) : null;
         if (call === '' || call === previousDefault) {
-            setValue('call_time', fromMinutes(Math.max(0, toMinutes(time) - 60)), { shouldDirty: true });
+            setValue('call_time', fromMinutes(Math.max(0, toMinutes(time) - offset)), { shouldDirty: true });
         }
     };
 

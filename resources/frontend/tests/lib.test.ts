@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { addDays, formatDate, formatLocalDateTime, formatWeekdayDate, isoWeekday, maskDisplayDate, parseDisplayDate, toDisplayDate, weekdayName } from '@/lib/dates';
 import { formatDateTime } from '@/i18n/ca';
 import { describeRule } from '@/lib/rules';
-import { fromMinutes, isOnGrid, isWithin, toMinutes } from '@/lib/time';
+import { callOffset, fromMinutes, isOnGrid, isWithin, toMinutes } from '@/lib/time';
 
 describe('hores', () => {
     it('converteix hores i minuts', () => {
@@ -56,5 +56,15 @@ describe('regles', () => {
             'diumenge 12:30 · Camp 1',
         );
         expect(describeRule({ ...base, weekday: null, preferred_time: null, preferred_field_area_id: null, not_before: '10:00' })).toBe('no abans de 10:00');
+    });
+});
+
+describe('convocatòria per defecte', () => {
+    it('és una hora abans, però a futbol 7 són 45 minuts a casa i 1 h 45 min a fora', () => {
+        expect(callOffset('f11', 'home')).toBe(60);
+        expect(callOffset('f11', 'away')).toBe(60);
+        expect(callOffset('f7', 'home')).toBe(45);
+        expect(callOffset('f7', 'away')).toBe(105);
+        expect(callOffset('f7', '')).toBe(60);
     });
 });

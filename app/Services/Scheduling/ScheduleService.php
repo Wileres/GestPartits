@@ -170,7 +170,7 @@ class ScheduleService
             $match->placement_source = $unschedule ? null : 'manual';
             $match->is_locked = ! $unschedule;
             // La convocatòria per defecte (una hora abans) segueix el partit; una de pròpia es manté.
-            $match->call_time = CallTime::follow($match->call_time, $oldKickoff, $match->kickoff_time);
+            $match->call_time = CallTime::follow($match->call_time, $oldKickoff, $match->kickoff_time, $match->game_format?->value, $match->home_away?->value);
             $match->lock_version++;
             $match->save();
 
@@ -541,7 +541,7 @@ class ScheduleService
                 $match->kickoff_time = Time::fromMinutes($placement->kickoff).':00';
                 $match->field_area_id = $areas[$placement->area];
                 $match->placement_source = 'auto';
-                $match->call_time = CallTime::follow($match->call_time, $oldKickoff, $match->kickoff_time);
+                $match->call_time = CallTime::follow($match->call_time, $oldKickoff, $match->kickoff_time, $match->game_format?->value, $match->home_away?->value);
             } else {
                 $match->kickoff_time = null;
                 $match->field_area_id = null;

@@ -115,8 +115,8 @@ class ScheduleApiTest extends TestCase
         // Els partits segueixen «confirmats»: la proposta només en canvia l'horari.
         $this->assertSame('confirmed', $m['alevi-a']->fresh()->status->value);
         $this->assertSame('auto', $m['alevi-a']->fresh()->placement_source);
-        // Convocatòria per defecte: una hora abans del partit.
-        $this->assertSame('10:15:00', $m['alevi-a']->fresh()->call_time);
+        // Convocatòria per defecte: a futbol 7 a casa, 45 minuts abans del partit.
+        $this->assertSame('10:30:00', $m['alevi-a']->fresh()->call_time);
         $this->assertDatabaseHas('audit_logs', ['event' => 'schedule.proposed']);
     }
 

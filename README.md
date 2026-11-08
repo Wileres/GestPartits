@@ -10,7 +10,7 @@ Programació dels partits de futbol del **Joventut Sant Pere Màrtir**: equips, 
 
 1. **Configuració** (administrador): categories, franges horàries, bloquejos del camp, regles horàries, plantilles i destins de WhatsApp, aparença i correu (servidor SMTP i remitent).
 2. **Temporades:** es crea la jornada (per exemple, dissabte i diumenge).
-3. **Partits:** amb el full ràpid es marca cada equip com a casa o a fora (suggeriment a partir de l'últim partit). Els partits nous es desen com a **confirmats**; els de casa carreguen l'**horari preferent** de l'equip i la convocatòria és **una hora abans**. Els partits només tenen tres estats: Proposat, Confirmat i Cancel·lat.
+3. **Partits:** amb el full ràpid es marca cada equip com a casa o a fora (suggeriment a partir de l'últim partit). Els partits nous es desen com a **confirmats**; els de casa carreguen l'**horari preferent** de l'equip i la convocatòria és **una hora abans** (a futbol 7, **45 minuts abans a casa i 1 h 45 min abans a fora**). Els partits només tenen tres estats: Proposat, Confirmat i Cancel·lat.
 4. **Programació:** «Genera una proposta» col·loca els partits a casa segons les franges, la capacitat del camp (2 partits de futbol 7 alhora, o 1 de futbol 11) i les regles. Després es pot ajustar arrossegant les targetes.
 5. **Confirma la programació:** no es pot confirmar mentre hi hagi conflictes crítics.
 6. **Imatges i avisos:**

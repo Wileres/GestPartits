@@ -63,9 +63,9 @@ class PreferredScheduleTest extends TestCase
         $this->assertSame(['camp_1', 'camp_2'], [$first->json('data.field_area.code'), $second->json('data.field_area.code')]);
     }
 
-    public function test_call_time_defaults_to_one_hour_before_the_match(): void
+    public function test_call_time_defaults_to_one_hour_before_the_match_and_45_minutes_in_football_7_at_home(): void
     {
-        $this->create('alevi-a')->assertJsonPath('data.kickoff_time', '11:15')->assertJsonPath('data.call_time', '10:15');
+        $this->create('alevi-a')->assertJsonPath('data.kickoff_time', '11:15')->assertJsonPath('data.call_time', '10:30');
         $this->create('primer-equip')->assertJsonPath('data.call_time', '16:00');
     }
 
@@ -116,7 +116,7 @@ class PreferredScheduleTest extends TestCase
         $payload = ['team_id' => $match->team_id, 'home_away' => 'home', 'opponent' => 'CF Olot', 'lock_version' => 0];
 
         $this->spa()->putJson("/api/matches/{$id}", [...$payload, 'match_date' => '2026-10-17', 'kickoff_time' => '10:30', 'field_area_id' => $this->area('camp_1')->id])
-            ->assertOk()->assertJsonPath('data.call_time', '09:30');
+            ->assertOk()->assertJsonPath('data.call_time', '09:45');
 
         // Si el gestor canvia la convocatòria, no es torna a sobreescriure.
         $this->spa()->putJson("/api/matches/{$id}", [...$payload, 'lock_version' => 1, 'match_date' => '2026-10-17', 'kickoff_time' => '11:00', 'call_time' => '10:15', 'field_area_id' => $this->area('camp_1')->id])

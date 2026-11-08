@@ -225,4 +225,18 @@ class MatchApiTest extends TestCase
         $this->spa()->putJson("/api/matches/{$id}", [...$base, 'kickoff_time' => '13:00', 'call_time' => '11:45', 'lock_version' => 1])
             ->assertOk()->assertJsonPath('data.call_time', '11:45');
     }
+
+    public function test_football_7_call_time_is_45_minutes_before_at_home_and_one_hour_45_away_and_follows_the_condition(): void
+    {
+        $team = $this->team('alevi-a');
+        $away = ['team_id' => $team->id, 'home_away' => 'away', 'match_date' => '2026-10-18'];
+
+        $id = $this->create([...$away, 'kickoff_time' => '12:00'])->assertCreated()->assertJsonPath('data.call_time', '10:15')->json('data.id');
+
+        // Si passa a casa i la convocatòria era la per defecte, es recalcula (45 minuts abans).
+        $this->spa()->putJson("/api/matches/{$id}", [
+            'team_id' => $team->id, 'home_away' => 'home', 'match_date' => '2026-10-18', 'kickoff_time' => '12:00', 'call_time' => '10:15',
+            'field_area_id' => $this->area('camp_1')->id, 'lock_version' => 0,
+        ])->assertOk()->assertJsonPath('data.call_time', '11:15');
+    }
 }

@@ -103,13 +103,25 @@ describe('horari preferent des de la fitxa de l’equip', () => {
         // En triar l'hora, la convocatòria es proposa una hora abans (i es pot canviar).
         await user.selectOptions(screen.getByLabelText('Hora del partit'), '11:15');
         expect(screen.getByLabelText('Hora de convocatòria')).toHaveValue('10:15');
-        expect(screen.getByText('Per defecte, una hora abans del partit.')).toBeInTheDocument();
+        expect(screen.getByText(/Per defecte, una hora abans del partit/)).toBeInTheDocument();
 
         await user.clear(screen.getByLabelText('Hora de convocatòria'));
         await user.type(screen.getByLabelText('Hora de convocatòria'), '10:00');
         await user.selectOptions(screen.getByLabelText('Hora del partit'), '11:30');
         expect(screen.getByLabelText('Hora de convocatòria')).toHaveValue('10:00');
         expect(reference.field_areas).toHaveLength(3);
+    });
+
+    it('a futbol 7 la convocatòria per defecte és 45 minuts abans a casa i 1 h 45 min abans a fora', async () => {
+        // Cadet A ja té un partit a la jornada; aquí juga a futbol 7.
+        mockFetch(withTeams([team(3, 'Cadet A', 'f7', 'Cadet')]));
+        renderApp('/partits');
+        const user = userEvent.setup();
+
+        await user.click(await screen.findByRole('button', { name: 'Afegeix un partit: Cadet A' }));
+        await user.click(await screen.findByText('Casa'));
+        await user.selectOptions(screen.getByLabelText('Hora del partit'), '11:15');
+        expect(screen.getByLabelText('Hora de convocatòria')).toHaveValue('10:30');
     });
 
     it('només hi ha els estats Proposat, Confirmat i Cancel·lat, i un partit nou és Confirmat', async () => {

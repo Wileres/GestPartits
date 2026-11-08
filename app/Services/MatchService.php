@@ -50,7 +50,7 @@ class MatchService
 
             $this->apply($match, $team, $data);
             $this->applyPreferredSchedule($match, $team, $matchday, $data);
-            $match->call_time = CallTime::follow($match->call_time, null, $match->kickoff_time);
+            $match->call_time = CallTime::follow($match->call_time, null, $match->kickoff_time, $match->game_format?->value, $match->home_away?->value);
             $match->save();
             $this->schedules->markChanged($matchday);
 
@@ -76,11 +76,13 @@ class MatchService
             unset($data['lock_version']);
 
             $oldKickoff = $match->kickoff_time;
+            $oldFormat = $match->game_format?->value;
+            $oldHomeAway = $match->home_away?->value;
             $this->apply($match, $team, $data);
-            // La convocatòria per defecte (una hora abans) es proposa quan el partit rep hora i segueix els canvis d'hora;
+            // La convocatòria per defecte (una hora abans; a futbol 7, 45 min a casa i 1 h 45 min a fora) es proposa quan el partit rep hora i segueix els canvis d'hora;
             // si el gestor l'ha buidada o n'ha posat una de pròpia, es respecta.
             if ($oldKickoff === null || $match->call_time !== null) {
-                $match->call_time = CallTime::follow($match->call_time, $oldKickoff, $match->kickoff_time);
+                $match->call_time = CallTime::follow($match->call_time, $oldKickoff, $match->kickoff_time, $match->game_format?->value, $match->home_away?->value, $oldFormat, $oldHomeAway);
             }
             // Desar només el resultat no toca la programació (ni la deixa «pendent de revisar»).
             $changesSchedule = $this->changesSchedule($match);

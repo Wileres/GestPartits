@@ -37,3 +37,13 @@ export function quarterHours(from = '00:00', to = '23:45', step = 15): string[] 
 
     return options;
 }
+
+/**
+ * Minuts d'antelació de la convocatòria per defecte (mateixa regla que App\Support\CallTime): una hora abans; a futbol 7,
+ * 45 minuts als partits a casa i 1 hora i 45 minuts als partits a fora.
+ */
+export function callOffset(format: string, homeAway: string): number {
+    if (format !== 'f7') return 60;
+
+    return homeAway === 'home' ? 45 : homeAway === 'away' ? 105 : 60;
+}

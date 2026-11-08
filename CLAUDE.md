@@ -24,7 +24,7 @@ Estructura:
 - `app/Http` (Controllers/Api, Requests, Resources), `app/Policies`, `app/Models` (el modelo de `matches` es `GameMatch`), `app/Jobs` (`GenerateScheduleImages`, `GenerateResultsImages`, `SendWhatsAppMessage`), `app/Infrastructure/{Imaging,WhatsApp}` (renderizadores y proveedores), `app/Support` (`CallTime`, `TeamName`, `MailSettings`, `ClubSettings`, `ClubBranding`, `CatalanDate`…).
 - `resources/frontend/src/{api,app,components,domain,features,hooks,i18n,lib}` — `features/*` por módulo (schedule, matches, teams, seasons, notifications, images, social, mail, appearance, help…). **Todos los textos** en `i18n/ca.ts`.
 - `resources/views/images/*` — plantillas Blade de las imágenes (Chromium). `GdRenderer` replica el diseño con GD y debe mantenerse alineado.
-- `lang/ca` — mensajes del backend. `tests/` (PHPUnit sobre MariaDB) y `resources/frontend/tests/` (Vitest). `docs/` — fases 1–8, `DECISIONS.md` (D-001…D-086, **léelo antes de cambiar comportamiento**) y `proves.md`. `deploy/` — plantillas nginx/apache/systemd/cron/backup.
+- `lang/ca` — mensajes del backend. `tests/` (PHPUnit sobre MariaDB) y `resources/frontend/tests/` (Vitest). `docs/` — fases 1–8, `DECISIONS.md` (D-001…D-087, **léelo antes de cambiar comportamiento**) y `proves.md`. `deploy/` — plantillas nginx/apache/systemd/cron/backup.
 
 Flujo de datos principal: temporada → jornada (`matchdays`) → partidos (`matches`) → programación (`schedules`, con `schedule_versions` = instantáneas JSON) → confirmación (`confirmed_version_id`) → imágenes (`generated_images`, ligadas a la versión confirmada) y avisos (`whatsapp_messages`).
 
@@ -42,8 +42,8 @@ INITIAL_USER_PASSWORD='…' php artisan db:seed         # crea el usuario «Gest
 ```
 Tests y calidad (todos deben quedar en verde antes de commitear):
 ```bash
-php artisan test                    # 323 tests; usa la BD gestpartits_test en MariaDB (no SQLite)
-npx vitest run                      # 116 tests; ejecutar SIEMPRE desde la raíz del repo
+php artisan test                    # 327 tests; usa la BD gestpartits_test en MariaDB (no SQLite)
+npx vitest run                      # 118 tests; ejecutar SIEMPRE desde la raíz del repo
 npx tsc --noEmit -p . && npx eslint resources/frontend/src
 vendor/bin/pint --dirty             # estilo PHP
 npm run build                       # genera public/build (ignorado por Git)
@@ -98,7 +98,7 @@ Reiniciar la cola es obligatorio cuando cambian clases o vistas de imágenes/avi
 Reglas de negocio fijadas por el club:
 - Último kickoff de una franja a las **13:00**; kickoff manual entre **09:00 y 21:00** en cuadrícula de **15 min** (D-021, D-026). Sin preparación previa: ocupación = `[kickoff, kickoff + duración + margen posterior)` (D-022).
 - Capacidad del campo: dos partidos de fútbol 7 a la vez, o uno de fútbol 11 (dos recursos H1/H2, D-004). Escoleta a partir de las **10:00**. Los partidos a casa sin hueco van al **sábado por la mañana** y después al **domingo por la mañana** (D-024). Sábado y domingo siempre en la misma pantalla (D-025).
-- Estados de partido solo **Proposat / Confirmat / Cancel·lat**; los nuevos nacen *Confirmat* (D-056). Horario preferente por equipo (regla de ámbito equipo, D-058/059). Convocatoria por defecto = **1 h antes**, también fuera de casa, y sigue al partido mientras no se edite a mano (D-060/062). En partidos a fuera se escribe día y hora en el formulario rápido (D-063). La sugerencia casa/fuera es la contraria del último partido del equipo (D-064). Escudo único del club (D-061). Partidos a casa resaltados en azul.
+- Estados de partido solo **Proposat / Confirmat / Cancel·lat**; los nuevos nacen *Confirmat* (D-056). Horario preferente por equipo (regla de ámbito equipo, D-058/059). Convocatoria por defecto = **1 h antes**; en **fútbol 7: 45 min antes en casa y 1 h 45 min antes fuera** (D-087). Sigue al partido (hora, modalidad o casa/fuera) mientras no se edite a mano (D-060/062/087); los partidos ya guardados no se recalculan. En partidos a fuera se escribe día y hora en el formulario rápido (D-063). La sugerencia casa/fuera es la contraria del último partido del equipo (D-064). Escudo único del club (D-061). Partidos a casa resaltados en azul.
 - La jornada por defecto en Programació/Partits/Avisos es la **última creada** (D-068).
 - Un movimiento manual bloquea el partido; regenerar respeta los bloqueos (D-010, D-057). Versiones = instantáneas de solo inserción; **restaurar versión** crea una versión nueva y, si la restaurada era una confirmación, vuelve a `confirmed` con sus imágenes y estados de avisos (D-080).
 - Nombre del **rival** normalizado al guardar (`TeamName`): inicial en mayúscula en cada palabra (el resto no se toca), «de»/«del» en minúscula, «fue» en MAYÚSCULAS, letras sueltas en mayúscula (D-081). *Interpretación mía de «fue»: POR CONFIRMAR con el club (¿«fc»?).* Solo afecta al rival, no a los equipos del club.
